@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../config/StoreContext.php';
 require_once __DIR__ . '/../../config/settings.php';
 require_once __DIR__ . '/../../config/language.php';
+require_once __DIR__ . '/../../config/CsrfHelper.php';
 
 $store_id = StoreContext::getId();
 $settings = new Settings(null, $store_id);
@@ -51,6 +52,114 @@ try {
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $action = $_POST['action'] ?? '';
     
+    // Simple "Create New Product" handler (Bootstrap modal)
+    if ($action === 'create_basic_product') {
+        try {
+            if (!$store_id) {
+                throw new Exception('Invalid store context.');
+            }
+
+            $name           = trim($_POST['name'] ?? '');
+            $price          = $_POST['price'] !== '' ? (float)$_POST['price'] : 0;
+            $cost_price     = $_POST['cost_price'] !== '' ? (float)$_POST['cost_price'] : null;
+            $stock_quantity = $_POST['stock_quantity'] !== '' ? (int)$_POST['stock_quantity'] : 0;
+            $category_id    = isset($_POST['category_id']) ? (int)$_POST['category_id'] : 0;
+            $description    = trim($_POST['description'] ?? '');
+            $is_active      = isset($_POST['is_active']) ? 1 : 0;
+
+            if ($name === '') {
+                throw new Exception('Product name is required.');
+            }
+
+            // Generate slug from name and ensure uniqueness per store
+            $base_slug = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '-', $name), '-'));
+            if ($base_slug === '') {
+                $base_slug = 'product-' . time();
+            }
+            $slug = $base_slug;
+            $counter = 1;
+            while (true) {
+                $check_query = "SELECT id FROM products WHERE store_id = ? AND slug = ?";
+                $check_stmt = $conn->prepare($check_query);
+                $check_stmt->execute([$store_id, $slug]);
+                if (!$check_stmt->fetch()) {
+                    break;
+                }
+                $slug = $base_slug . '-' . $counter;
+                $counter++;
+            }
+
+            // Auto SKU
+            $sku = 'SKU-' . date('YmdHis') . '-' . random_int(100, 999);
+
+            $short_description = mb_substr(strip_tags($description), 0, 160);
+            $meta_title        = $name;
+            $meta_description  = $short_description;
+            $sale_price        = null;
+            $featured          = 0;
+
+            $insert = $conn->prepare(
+                "INSERT INTO products (
+                    store_id, name, sku, slug, price, sale_price, cost_price,
+                    stock_quantity, short_description, description,
+                    meta_title, meta_description, is_active, featured
+                ) VALUES (
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                )"
+            );
+
+            $insert->execute([
+                $store_id,
+                $name,
+                $sku,
+                $slug,
+                $price,
+                $sale_price,
+                $cost_price,
+                $stock_quantity,
+                $short_description,
+                $description,
+                $meta_title,
+                $meta_description,
+                $is_active,
+                $featured,
+            ]);
+
+            $product_id = (int)$conn->lastInsertId();
+
+            // Attach single category if provided
+            if ($product_id && $category_id > 0) {
+                $catStmt = $conn->prepare("INSERT INTO product_categories (store_id, product_id, category_id) VALUES (?, ?, ?)");
+                $catStmt->execute([$store_id, $product_id, $category_id]);
+            }
+
+            // Handle primary image upload
+            if ($product_id && isset($_FILES['product_image']) && is_array($_FILES['product_image']) && $_FILES['product_image']['error'] === UPLOAD_ERR_OK) {
+                $ext = strtolower(pathinfo($_FILES['product_image']['name'], PATHINFO_EXTENSION));
+                if (in_array($ext, ['jpg','jpeg','png','gif','webp'], true)) {
+                    $upload_dir = __DIR__ . "/../../uploads/stores/" . $store_id . "/products/" . $product_id . "/";
+                    if (!is_dir($upload_dir)) {
+                        @mkdir($upload_dir, 0755, true);
+                    }
+                    $target = $upload_dir . 'main.' . $ext;
+                    @move_uploaded_file($_FILES['product_image']['tmp_name'], $target);
+
+                    // Normalize to main.jpg for compatibility with frontend helpers
+                    $main_jpg = $upload_dir . 'main.jpg';
+                    if (file_exists($main_jpg)) {
+                        @unlink($main_jpg);
+                    }
+                    @copy($target, $main_jpg);
+                }
+            }
+
+            header('Location: ?page=products&success=' . urlencode($t('created_successfully')));
+            exit;
+        } catch (Exception $e) {
+            $save_error = $e->getMessage();
+        }
+    }
+
     if ($action === 'add' || $action === 'edit') {
         try {
             $product_id = !empty($_POST['product_id']) ? (int)$_POST['product_id'] : null;
@@ -559,13 +668,21 @@ $stats['out_of_stock'] = (int)($stats['out_of_stock'] ?? 0);
             <div class="results-info">
                 <?php echo $t('showing_products'); ?> <?php echo count($products); ?> <?php echo $t('of_products'); ?> <?php echo $total_products; ?> <?php echo $t('products'); ?>
             </div>
-            <div class="view-toggle">
-                <button class="view-btn active" data-view="grid" onclick="switchView('grid')">
-                    <i class="fas fa-th-large"></i>
+            <div class="d-flex align-items-center gap-2">
+                <button type="button"
+                        class="btn btn-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#addProductModal">
+                    <i class="fas fa-plus me-1"></i> <?php echo $t('add_new_product'); ?>
                 </button>
-                <button class="view-btn" data-view="list" onclick="switchView('list')">
-                    <i class="fas fa-list"></i>
-                </button>
+                <div class="view-toggle">
+                    <button class="view-btn active" data-view="grid" onclick="switchView('grid')">
+                        <i class="fas fa-th-large"></i>
+                    </button>
+                    <button class="view-btn" data-view="list" onclick="switchView('list')">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -680,6 +797,86 @@ $stats['out_of_stock'] = (int)($stats['out_of_stock'] ?? 0);
                 <?php endif; ?>
             </div>
         <?php endif; ?>
+    </div>
+</div>
+
+<!-- Bootstrap "Create New Product" Modal -->
+<div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" enctype="multipart/form-data">
+                <?php echo CsrfHelper::getTokenField(); ?>
+                <input type="hidden" name="action" value="create_basic_product">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addProductModalLabel">
+                        <i class="fas fa-box-open me-2"></i><?php echo $t('add_new_product'); ?>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label"><?php echo $t('product_name'); ?> *</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label"><?php echo $t('regular_price'); ?> *</label>
+                            <input type="number" name="price" class="form-control" step="0.01" min="0" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label"><?php echo $t('cost_price'); ?></label>
+                            <input type="number" name="cost_price" class="form-control" step="0.01" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label"><?php echo $t('stock_quantity'); ?></label>
+                            <input type="number" name="stock_quantity" class="form-control" min="0" value="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><?php echo $t('categories_tab'); ?></label>
+                            <?php if ($categories_enabled === '1' && !empty($categories)): ?>
+                                <select name="category_id" class="form-select">
+                                    <option value=""><?php echo $t('all_categories'); ?></option>
+                                    <?php foreach ($categories as $cat): ?>
+                                        <option value="<?php echo (int)$cat['id']; ?>">
+                                            <?php echo htmlspecialchars($cat['name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            <?php else: ?>
+                                <div class="form-text"><?php echo $t('categories_disabled'); ?></div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-center">
+                            <div class="form-check mt-3">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="basic_is_active" checked>
+                                <label class="form-check-label" for="basic_is_active">
+                                    <?php echo $t('is_active'); ?>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label"><?php echo $t('full_description'); ?></label>
+                            <textarea name="description" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label"><?php echo $t('images'); ?> (<?php echo $t('optional'); ?>)</label>
+                            <input type="file" name="product_image" class="form-control" accept="image/*">
+                            <div class="form-text">
+                                JPG, PNG, GIF, WEBP. The selected image will be used as the primary product image.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <?php echo $t('cancel'); ?>
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i><?php echo $t('save'); ?>
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

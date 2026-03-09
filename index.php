@@ -28,15 +28,15 @@ if (!$resolved) {
 StoreContext::set($resolved['id'], $resolved['store']);
 $settings = new Settings();
 $activeTemplate = $settings->getSetting('active_template', 'temp1');
-// Fallback to temp1 if temp2 was removed
-if ($activeTemplate === 'temp2' || !is_dir(__DIR__ . "/templates/{$activeTemplate}")) {
+// Fallback to temp1 only if the configured template directory does not exist
+if (!is_dir(__DIR__ . "/templates/{$activeTemplate}")) {
     $activeTemplate = 'temp1';
 }
 
 // Handle cart actions before any output (AJAX or full form submit)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['page'] ?? '') === 'cart') {
     $action = $_POST['action'] ?? '';
-    if (in_array($action, ['add', 'update', 'remove'])) {
+    if (in_array($action, ['add', 'update', 'remove', 'clear'], true)) {
         if (!isset($_SESSION['cart'])) {
             $_SESSION['cart'] = [];
         }
@@ -46,7 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['page'] ?? '') === 'cart') {
         $variant_id = isset($_POST['variant_id']) && $_POST['variant_id'] !== '' ? (int)$_POST['variant_id'] : null;
         $variant_label = $_POST['variant_label'] ?? null;
 
-        if ($action === 'add') {
+        if ($action === 'clear') {
+            $_SESSION['cart'] = [];
+        } elseif ($action === 'add') {
             // Verify product belongs to current store before adding
             if ($product_id <= 0) {
                 header('Content-Type: application/json');

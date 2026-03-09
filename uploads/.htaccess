@@ -29,5 +29,6 @@ Options -Indexes
     AddType image/png png
     AddType image/gif gif
     AddType image/webp webp
+    AddType image/svg+xml svg
 </IfModule>
 
