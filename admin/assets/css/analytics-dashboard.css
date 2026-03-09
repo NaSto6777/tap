@@ -271,6 +271,7 @@
 .table-responsive {
   width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .analytics-table {
@@ -511,6 +512,12 @@
   font-size: 0.8rem;
   color: var(--text-secondary);
   word-break: break-all;
+}
+
+@media (max-width: 576px) {
+  .page-engagement-table .page-url {
+    display: none;
+  }
 }
 
 .page-engagement-table .metric {

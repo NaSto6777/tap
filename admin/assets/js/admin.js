@@ -54,6 +54,20 @@ const Utils = {
     AdminState.theme = theme;
     localStorage.setItem('admin-theme', theme);
     document.documentElement.setAttribute('data-theme', theme);
+    // Keep brand primary color consistent across themes
+    try {
+      const root = document.documentElement;
+      const computed = getComputedStyle(root);
+      const brand =
+        computed.getPropertyValue('--primary-color') ||
+        computed.getPropertyValue('--color-primary-db') ||
+        computed.getPropertyValue('--color-primary');
+      const brandTrimmed = brand && brand.trim();
+      if (brandTrimmed) {
+        root.style.setProperty('--primary-color', brandTrimmed);
+        root.style.setProperty('--color-primary', brandTrimmed);
+      }
+    } catch (e) {}
     this.updateThemeSwitcher(theme);
     
     // Save theme to server session via AJAX

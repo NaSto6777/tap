@@ -15,15 +15,26 @@ $is_rtl = Language::isRTL();
     <title>Admin - Multi Template Ecommerce</title>
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" as="style">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="assets/css/admin.css" rel="stylesheet">
     <link href="assets/css/admin-shell.css" rel="stylesheet">
     <meta name="csrf-token" content="<?php echo htmlspecialchars(CsrfHelper::getToken()); ?>">
     <style>
         :root {
-            --color-primary-db: <?php echo $settings->getSetting('primary_color', '#007bff'); ?>;
-            --color-primary-db-hover: <?php echo $settings->getSetting('primary_color', '#007bff'); ?>dd;
-            --color-primary-db-light: <?php echo $settings->getSetting('primary_color', '#007bff'); ?>20;
+            /* Brand primary color from settings (dynamic per store) */
+            --primary-color: <?php echo $settings->getSetting('primary_color', '#6366f1'); ?>;
+            /* Soft accent (≈15% opacity) for hovers/active backgrounds */
+            --primary-color-light: <?php echo $settings->getSetting('primary_color', '#6366f1'); ?>26;
+
+            /* Map legacy tokens to the dynamic primary for compatibility */
+            --color-primary: var(--primary-color);
+            --color-primary-hover: var(--primary-color);
+            --color-primary-light: var(--primary-color-light);
+
+            --color-primary-db: var(--primary-color);
+            --color-primary-db-hover: <?php echo $settings->getSetting('primary_color', '#6366f1'); ?>dd;
+            --color-primary-db-light: var(--primary-color-light);
         }
     </style>
 </head>

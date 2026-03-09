@@ -7,16 +7,21 @@
 (function() {
   const STORAGE_KEY = 'admin-theme';
 
-  function applyTheme(theme) {
-    if (!theme) return;
-    document.documentElement.setAttribute('data-theme', theme);
-    try { localStorage.setItem(STORAGE_KEY, theme); } catch (e) {}
+  function applyTheme(theme, primaryColor) {
+    if (theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      try { localStorage.setItem(STORAGE_KEY, theme); } catch (e) {}
+    }
+    if (primaryColor) {
+      document.documentElement.style.setProperty('--primary-color', primaryColor);
+      document.documentElement.style.setProperty('--color-primary', primaryColor);
+    }
   }
 
   // 1) Theme: listen for parent message or read localStorage
   if (window.parent !== window) {
     window.addEventListener('message', function(e) {
-      if (e.data && e.data.type === 'theme') applyTheme(e.data.theme);
+      if (e.data && e.data.type === 'theme') applyTheme(e.data.theme, e.data.primaryColor);
     });
     applyTheme(localStorage.getItem(STORAGE_KEY) || document.documentElement.getAttribute('data-theme') || 'light');
   }

@@ -114,13 +114,27 @@ if ($content_only) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($page_title); ?> - Admin</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="assets/css/admin.css" rel="stylesheet">
     <link href="assets/css/admin-shell.css" rel="stylesheet">
     <?php if ($page === 'categories'): ?><link href="assets/css/categories.css" rel="stylesheet"><?php endif; ?>
     <?php if ($page === 'analytics_dashboard'): ?><link href="assets/css/analytics-dashboard.css" rel="stylesheet"><?php endif; ?>
     <meta name="csrf-token" content="<?php echo htmlspecialchars(CsrfHelper::getToken()); ?>">
-    <style>:root { --color-primary-db: <?php echo $settings->getSetting('primary_color', '#007bff'); ?>; --color-primary-db-hover: <?php echo $settings->getSetting('primary_color', '#007bff'); ?>dd; --color-primary-db-light: <?php echo $settings->getSetting('primary_color', '#007bff'); ?>20; }</style>
+    <style>
+        :root {
+            --primary-color: <?php echo $settings->getSetting('primary_color', '#6366f1'); ?>;
+            --primary-color-light: <?php echo $settings->getSetting('primary_color', '#6366f1'); ?>26;
+
+            --color-primary: var(--primary-color);
+            --color-primary-hover: var(--primary-color);
+            --color-primary-light: var(--primary-color-light);
+
+            --color-primary-db: var(--primary-color);
+            --color-primary-db-hover: <?php echo $settings->getSetting('primary_color', '#6366f1'); ?>dd;
+            --color-primary-db-light: var(--primary-color-light);
+        }
+    </style>
 </head>
 <body class="content-frame">
     <div class="content-frame-inner" role="main">

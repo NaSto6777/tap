@@ -43,10 +43,22 @@
     return document.documentElement.getAttribute('data-theme') || localStorage.getItem(STORAGE_KEY) || 'light';
   }
 
+  function getPrimaryColor() {
+    try {
+      const cs = getComputedStyle(document.documentElement);
+      return (cs.getPropertyValue('--primary-color') || cs.getPropertyValue('--color-primary') || '').trim();
+    } catch (e) {
+      return '';
+    }
+  }
+
   function sendThemeToFrame() {
     try {
       if (frame.contentWindow) {
-        frame.contentWindow.postMessage({ type: 'theme', theme: getTheme() }, '*');
+        frame.contentWindow.postMessage(
+          { type: 'theme', theme: getTheme(), primaryColor: getPrimaryColor() },
+          '*'
+        );
       }
     } catch (err) {}
   }

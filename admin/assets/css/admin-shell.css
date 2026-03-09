@@ -135,6 +135,16 @@
   margin-right: var(--sidebar-width-collapsed);
 }
 
+@media (max-width: 767px) {
+  .admin-shell .main-content-shell {
+    margin-left: 0;
+  }
+
+  [dir="rtl"].admin-shell .main-content-shell {
+    margin-right: 0;
+  }
+}
+
 [dir="rtl"].admin-shell .sidebar-overlay {
   left: auto;
   right: 0;
@@ -149,8 +159,15 @@
 }
 
 .content-frame-inner {
-  padding: var(--space-6);
+  padding: var(--space-8);
   min-height: 100%;
+}
+
+@media (max-width: 767px) {
+  .admin-shell .content-frame-inner,
+  .content-frame-inner {
+    padding: var(--space-2);
+  }
 }
 
 .content-frame-doc {
@@ -159,4 +176,32 @@
 
 .content-frame-doc body.content-frame {
   min-height: 100vh;
+}
+
+/* ========== Scrollbar styling for admin frame (iframe content) ========== */
+.content-frame-doc,
+.content-frame-doc body.content-frame {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-secondary) transparent;
+}
+
+.content-frame-doc::-webkit-scrollbar,
+.content-frame-doc body.content-frame::-webkit-scrollbar {
+  width: 8px;
+}
+
+.content-frame-doc::-webkit-scrollbar-track,
+.content-frame-doc body.content-frame::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.content-frame-doc::-webkit-scrollbar-thumb,
+.content-frame-doc body.content-frame::-webkit-scrollbar-thumb {
+  background-color: var(--border-secondary);
+  border-radius: 999px;
+}
+
+.content-frame-doc::-webkit-scrollbar-thumb:hover,
+.content-frame-doc body.content-frame::-webkit-scrollbar-thumb:hover {
+  background-color: var(--primary-color);
 }
