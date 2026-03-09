@@ -1,0 +1,162 @@
+/**
+ * Admin Shell: Slim sidebar, iframe layout, RTL
+ * Used when layout is shell (sidebar + header + iframe).
+ */
+
+/* ========== Slim sidebar & layout ========== */
+.admin-shell .admin-shell-container {
+  --sidebar-width: 240px;
+  --sidebar-width-collapsed: 64px;
+  --header-height: 56px;
+}
+
+.admin-shell .sidebar-slim.sidebar {
+  width: var(--sidebar-width);
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
+.admin-shell .sidebar-slim.collapsed {
+  width: var(--sidebar-width-collapsed);
+}
+
+.admin-shell .sidebar-slim .nav-link {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+}
+
+.admin-shell .sidebar-slim .nav-icon-slim,
+.admin-shell .sidebar-slim .nav-link i {
+  font-size: 0.95rem;
+  width: 1.25rem;
+  text-align: center;
+}
+
+.admin-shell .sidebar-slim .nav-section-title {
+  font-size: 0.65rem;
+  padding: 0 var(--space-4) var(--space-2);
+}
+
+.admin-shell .sidebar-slim .sidebar-header {
+  padding: var(--space-3);
+}
+
+/* ========== Iframe container ========== */
+.admin-shell .main-content-shell {
+  display: flex;
+  flex-direction: column;
+  margin-left: var(--sidebar-width);
+  padding-top: var(--header-height);
+  min-height: 100vh;
+  transition: margin-left var(--transition-normal);
+}
+
+.admin-shell .sidebar-slim.collapsed ~ .main-content-shell,
+.admin-shell .main-content.sidebar-collapsed.main-content-shell {
+  margin-left: var(--sidebar-width-collapsed);
+}
+
+.admin-frame-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+  background: var(--bg-secondary);
+}
+
+.admin-frame {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: calc(100vh - var(--header-height));
+  border: 0;
+  display: block;
+  background: var(--bg-primary);
+}
+
+/* No double scroll: iframe fills exactly the remaining viewport */
+.admin-shell .admin-frame-wrapper {
+  height: calc(100vh - var(--header-height));
+}
+
+.admin-shell .admin-frame {
+  height: 100%;
+  min-height: 0;
+}
+
+/* ========== Shell header (slim) ========== */
+.admin-shell .main-content-shell .header {
+  min-height: var(--header-height);
+  grid-template-columns: var(--sidebar-width) 1fr auto;
+}
+
+.admin-shell .main-content.sidebar-collapsed .header {
+  grid-template-columns: var(--sidebar-width-collapsed) 1fr auto;
+}
+
+/* ========== Toast container in shell ========== */
+.toast-container-shell {
+  position: fixed;
+  top: calc(var(--header-height) + var(--space-4));
+  right: var(--space-4);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+
+[dir="rtl"] .toast-container-shell {
+  right: auto;
+  left: var(--space-4);
+}
+
+.toast-container-shell .toast {
+  pointer-events: auto;
+  box-shadow: var(--shadow-lg);
+}
+
+/* ========== RTL: mirror shell ========== */
+[dir="rtl"].admin-shell .sidebar-slim.sidebar {
+  left: auto;
+  right: 0;
+  border-right: 0;
+  border-left: 1px solid var(--border-primary);
+}
+
+[dir="rtl"].admin-shell .main-content-shell {
+  margin-left: 0;
+  margin-right: var(--sidebar-width);
+}
+
+[dir="rtl"].admin-shell .sidebar-slim.collapsed ~ .main-content-shell,
+[dir="rtl"].admin-shell .main-content.sidebar-collapsed.main-content-shell {
+  margin-right: var(--sidebar-width-collapsed);
+}
+
+[dir="rtl"].admin-shell .sidebar-overlay {
+  left: auto;
+  right: 0;
+}
+
+/* ========== Content frame (inside iframe) ========== */
+.content-frame {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: var(--bg-primary);
+}
+
+.content-frame-inner {
+  padding: var(--space-6);
+  min-height: 100%;
+}
+
+.content-frame-doc {
+  height: 100%;
+}
+
+.content-frame-doc body.content-frame {
+  min-height: 100vh;
+}

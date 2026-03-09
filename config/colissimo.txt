@@ -1,0 +1,293 @@
+Web service: http://delivery.colissimo.com.tn/wsColissimoGo/wsColissimoGo.asmx
+Table des matières
+Opération AjouterColis :.........................................................................................................................................1
+1. Authentification : ..................................................................................................................................................1
+2. Paramètre à envoyer « pic » : ...............................................................................................................................2
+3. exemple en php :...................................................................................................................................................3
+4. exemple en python : .............................................................................................................................................4
+Opération ModifierColis :........................................................................................................................................4
+Opération SupprimerColis : .....................................................................................................................................5
+Opération ListeColis :..............................................................................................................................................5
+Opération GetColis : ...............................................................................................................................................6
+Opération GetColisPdf :..........................................................................................................................................7
+Opération listGouvernorats :...................................................................................................................................7
+http://delivery.colissimo.com.tn/wsColissimoGo/wsColissimoGo.asmx?wsdl
+Opération AjouterColis :
+Permet de créer un nouveau colis et retourne le code à barre en cas de success.
+1. Authentification :
+AuthHeader
+<soap:Header>
+ <AuthHeader xmlns="http://tempuri.org/">
+ <Uilisateur>string</Uilisateur>
+ <Pass>string</Pass>
+ </AuthHeader>
+ </soap:Header>
+Les paramètres à mettre dans AuthHeader sont générés à partir du menu Profile :
+Les éléments à mettre dans AuthHeader seront générés :
+2. Paramètre à envoyer « pic » :
+<soap:Body>
+ <AjouterColis xmlns="http://tempuri.org/">
+ <pic>string</pic>
+ </AjouterColis>
+ </soap:Body>
+ci-dessous un exemple du paramètre pic de type string formaté json à envoyer :
+{
+"reference":"votre_référence",
+"client":"nom du client",
+"adresse":"adresse du client",
+"ville":"ville",
+"gouvernorat":"gouvernorat",
+"nb_pieces":1,
+"prix":36.500,
+"tel1":"numero_tel",
+"tel2":"" , //deuxième numéro / vide
+"designation":"designation du colis",
+"commentaire":"commentaire", //peut être vide
+"type":"VO" ,// VO/VM/GV/EXP
+"echange":0
+}
+reference String Votre référence interne du colis/commade
+client String Exp : Mohamed Salah
+adresse String Exp : 12 rue …
+ville String Tunis
+gouvernorat String Tunis (le nom doit correspondre à la liste des
+gouvernorats ci-dessous)
+nb_pieces int Exp : 1
+prix decimal Exp : 50.500 en TND
+tel1 String Exp :22555555
+tel2 String Exp :22555556 (peut être vide)
+designation String Exp :articletest
+commentaire String Exp :à livrer le matin (peut être vide)
+type String Doit être : VO/VM/GV/EXP
+echange int 0 = pas d’échange / 1 = échange
+Modèle de la réponse du service web formaté Json result :
+string result_type;
+string result_code;
+object result_content;
+3. exemple en php :
+------------------------------------------------------------------------------------
+<?php
+class AuthHeader
+ {
+ var $Uilisateur;
+ var $Pass;
+ function __construct()
+ {
+ $this->Uilisateur = "clt_...";
+ $this->Pass = "votre_pass";
+ }
+ }
+ $authHeader = new AuthHeader();
+ $headerParams = new SoapVar($authHeader,SOAP_ENC_OBJECT);
+ $Headers = new SoapHeader('http://tempuri.org/','AuthHeader',$authHeader,false);
+try{
+$soapClient = new SoapClient(‘http://delivery.colissimo.com.tn/wsColissimoGo/wsColissimoGo.asmx?wsdl',
+array('soap_version' => SOAP_1_2));
+$soapClient->__setSoapHeaders($Headers);
+$objectresult = new stdClass();
+$params = array('AuthHeader'=>$authHeader,'pic'=>'{…}');
+$objectresult=$soapClient-> AjouterColis ($params);
+$objectresult->simpleresult = " AjouterColisResponse";
+$new = (array)$objectresult; //convertir stdClass en array
+$val = json_decode(json_encode($new),false);
+echo "<pre>";
+//print_r($val);
+}catch(exceptions $e){
+echo $e->getMessage();
+}
+?>
+4. exemple en python :
+from suds.client import Client
+import json
+client = Client('http://delivery.colissimo.com.tn/wsColissimoGo/wsColissimoGo.asmx?wsdl')
+AuthHeader = client.factory.create('AuthHeader')
+colis = {
+ 'adresse':'test',
+ 'client':'test test',
+ 'commentaire':'',
+ 'designation':'test article',
+ 'echange':0,
+ 'gouvernorat':'Tunis',
+ 'nb_pieces':1,
+ 'prix':36.5,
+ 'reference':'1',
+ 'tel1':'22555555',
+ 'type':'VO',
+ 'ville':'tunis',
+}
+AuthHeader.Uilisateur = 'clt_liv_...' # credentials
+AuthHeader.Pass = 'pass_...'
+client.set_options(soapheaders=AuthHeader)
+res_resp = client.service.AjouterColis(pic=json.dumps(colis))
+print(res_resp)
+Opération ModifierColis :
+- Authentification (Utilisateur,Pass)
+- Le colis doit être En Attente pour être modifié
+Exemple de la réponse si l’état du colis n’est pas « En Attente »
+{
+"result_type":"erreur",
+"result_code":"modification_colis_non_autorisée",
+"result_content":"colis_non_autorisé le colis 1013000000000 doit être en attente"
+}
+- ci-dessous un exemple du paramètre pic de type string formaté json à envoyer pour modification:
+{
+"code_barre":"1013000000000", //code à barre du colis à modifier
+"client":"nom du client",
+"adresse":"adresse du client",
+"ville":"ville",
+"gouvernorat":"gouvernorat",
+"nb_pieces":1,
+"prix":36.500,
+"tel1":"numero_tel",
+"tel2":"" , //deuxième numéro / vide
+"designation":"designation du colis",
+"commentaire":"commentaire", //peut être vide
+"type":"VO"
+"echange":0
+}
+Opération SupprimerColis :
+- Authentification (Utilisateur,Pass)
+- Le colis doit être En Attente pour être supprimé
+- Il faut juste envoyer le paramètre code_barre qui est le code à barre du colis à supprimer (type string)
+Opération ListeColis :
+- Authentification (Utilisateur,Pass)
+- Il faut juste envoyer le paramètre page qui est le numéro de page : chaque page comporte 100 élements
+Résultat :Si ok le modèle result_content sera ainsi :
+- colis : la liste des colis retournée par page
+- nbColis : nombre total des colis
+- nbPages : nombre total des pages
+- page : la page actuelle
+Les différents états retournés :
+En Attente
+A Enlever
+Enlevé
+Anomalie d`Enlévement
+Au Dépôt
+En Cours de Livraison
+Retour Dépôt
+ Anomalie de Livraison
+Livré
+Livré Payé
+Retour Client Agence
+Retour Définitif
+Retour Expéditeur
+Retour Reçu
+Echange Reçu
+Exemple du résultat :
+{
+"result_type":"success",
+"result_code":"liste_colis_ok",
+"result_content":{
+"colis":
+[{
+"code":"1013000000000",
+"reference":"",
+"client":" nom du client ",
+"adresse":"Local, Sousse centre ville",
+"ville":"Sousse Ville",
+"gouvernorat":"Sousse",
+"tel1":"97555555",
+"nb_pieces":1,
+"prix":83.0,
+"designation":"article",
+"commentaire":"RAS",
+"type":"VO",
+"echange":0,
+"date_creation":"2022 -02-24 T21 :36:35.477" ,
+"agence_actuelle":"Sousse",
+"etat":"Livré",
+"num_manifeste":999,
+"num_paiement":""
+},
+{
+…..,
+},
+{
+…..,
+}],
+"nbColis":"260",
+"nbPages":"3",
+"page":"1"
+}
+}
+Opération GetColis :
+- Authentification (Utilisateur,Pass)
+- Il faut juste envoyer le paramètre code_barre
+- En php : $params = array('AuthHeader'=>$authHeader,'code_barre'=>'1010000304793');
+Opération GetColisPdf :
+- Authentification (Utilisateur,Pass)
+- Il faut juste envoyer le paramètre code_barre
+- Le type de retour sera base64Binary
+Opération listGouvernorats :
+Réponse : result_content :
+[
+{"gouvernorat":"Ariana ",
+"villes":["-","Ariana Ville","Ettadhamen","Kalaat Landlous","La Soukra","Mnihla","Raoued","Sidi Thabet"]},
+{"gouvernorat":"Béja ",
+"villes":["-","Amdoun","Beja Nord","Beja Sud","Goubellat","Mejez El
+Bab","Nefza","Teboursouk","Testour","Thibar"]},
+{"gouvernorat":"Ben Arous",
+"villes":["-","Ben Arous","Bou Mhel El Bassatine","El Mourouj","Ezzahra","Fouchana","Hammam Chatt","Hammam
+Lif","Megrine","Mohamadia","Mornag","Nouvelle Medina","Rades"]},
+{"gouvernorat":"Bizerte ",
+"villes":["-","Bizerte Nord","Bizerte Sud","El Alia","Ghar El Melh","Ghezala","Jarzouna","Joumine","Mateur","Menzel
+Bourguiba","Menzel Jemil","Ras Jebel","Sejnane","Tinja","Utique","AOUSJA","LA PECHERIE"]},
+{"gouvernorat":"Gabès ",
+"villes":["-","El Hamma","El Metouia","Gabes Medina","Gabes Ouest","Gabes
+Sud","Ghannouche","Mareth","Matmata","Menzel Habib","Nouvelle Matmata"]},
+{"gouvernorat":"Gafsa ",
+"villes":["-","Belkhir","El Guettar","El Ksar","El Mdhilla","Gafsa Nord","Gafsa
+Sud","Metlaoui","Moulares","Redeyef","Sidi Aich","Sned"]},
+{"gouvernorat":"Jendouba ",
+"villes":["-","Ain Draham","Balta Bou Aouene","Bou Salem","Fernana","Ghardimaou","Jendouba","Jendouba
+Nord","Oued Mliz","Tabarka"]},
+{"gouvernorat":"Kairouan ",
+"villes":["-","Bou Hajla","Chebika","Cherarda","El Ala","Haffouz","Hajeb El Ayoun","Kairouan Nord","Kairouan
+Sud","Nasrallah","Oueslatia","Sbikha"]},
+{"gouvernorat":"Kasserine ",
+"villes":["-","El Ayoun","Ezzouhour (Kasserine)","Feriana","Foussana","Haidra","Hassi El Frid","Jediliane","Kasserine
+Nord","Mejel Bel Abbes","Sbeitla","Sbiba","Thala","Kasserine Sud"]},
+{"gouvernorat":"Kébili ",
+"villes":["-","Douz","El Faouar","Kebili Nord","Kebili Sud","Souk El Ahad"]},
+{"gouvernorat":"Le Kef ",
+"villes":["-","Dahmani","El Ksour","Jerissa","Kalaa El Khasba","Kalaat Sinane","Le Kef Est","Le Kef
+Ouest","Nebeur","Sakiet Sidi Youssef","Tajerouine","Touiref","Le Sers"]},
+{"gouvernorat":"Mahdia ",
+"villes":["-","Bou Merdes","Chorbane","El Jem","Hbira","Ksour Essaf","La Chebba","Mahdia","Melloulech","Ouled
+Chamakh","Sidi Alouene","Souassi"]},
+{"gouvernorat":"La Manouba ",
+"villes":["-","Borj El Amri","El Battan","Jedaida","Mannouba","Mornaguia","Oued Ellil","Tebourba","Douar Hicher"]},
+{"gouvernorat":"Médenine ",
+"villes":["-","Ajim","Ben Guerdane","Beni Khedache","Houmet Essouk","Medenine Nord","Medenine
+Sud","Midoun","Sidi Makhlouf","Zarzis"]},
+{"gouvernorat":"Monastir ",
+"villes":["-","Bekalta","Bembla","Beni Hassen","Jemmal","Ksar Helal","Ksibet El
+Mediouni","Monastir","Ouerdanine","Sahline","Sayada Lamta Bou Hajar","Teboulba","Zeramdine","Moknine"]},
+{"gouvernorat":"Nabeul",
+"villes":["-","Beni Khalled","Beni Khiar","Bou Argoub","Dar Chaabane Elfehri","El Haouaria","El
+Mida","Grombalia","Hammam El Ghezaz","Hammamet","Kelibia","Korba","Menzel Bouzelfa","Menzel
+Temime","Nabeul","Soliman","Takelsa"]},
+{"gouvernorat":"Sfax ",
+"villes":["-","Agareb","Bir Ali Ben Khelifa","El Amra","El
+Hencha","Esskhira","Ghraiba","Jebeniana","Kerkenah","Mahras","Menzel Chaker","Sakiet Eddaier","Sakiet
+Ezzit","Sfax Est","Sfax Sud","Sfax Ville"]},
+{"gouvernorat":"Sousse",
+"villes":["-","Akouda","Bou Ficha","Enfidha","Hammam Sousse","Hergla","Kalaa El Kebira","Kalaa
+Essghira","Kondar","Msaken","Sidi Bou Ali","Sidi El Heni","Sousse Jaouhara","Sousse Riadh","Sousse Ville"]},
+{"gouvernorat":"Siliana ",
+"villes":["-","Bargou","Bou Arada","El Aroussa","Gaafour","Kesra","Le Krib","Makthar","Rohia","Sidi Bou
+Rouis","Siliana Nord","Siliana Sud"]},
+{"gouvernorat":"Sidi Bouzid",
+"villes":["Ben Oun","Bir El Haffey","Cebbala","Jilma","Maknassy","Menzel Bouzaiene","Mezzouna","Ouled
+Haffouz","Regueb","Sidi Bouzid Est","Sidi Bouzid Ouest","Souk Jedid","-"]},
+{"gouvernorat":"Tataouine ",
+"villes":["-","Bir Lahmar","Dhehiba","Ghomrassen","Remada","Smar","Tataouine Nord","Tataouine Sud"]},
+{"gouvernorat":"Tozeur",
+"villes":["-","Degueche","Hezoua","Nefta","Tameghza","Tozeur"]},
+{"gouvernorat":"Tunis",
+"villes":["-","Bab Bhar","Bab Souika","Carthage","Cite El Khadra","El Hrairia","El Kabbaria","El Kram","El Menzah","El
+Omrane","El Omrane Superieur","El Ouerdia","Essijoumi","Ettahrir","Ezzouhour (Tunis)","Jebel Jelloud","La
+Goulette","La Marsa","La Medina","Le Bardo","Sidi El Bechir","Sidi Hassine","Tunis"]},
+{"gouvernorat":"Zaghouan ",
+"villes":["-","Bir Mcherga","El Fahs","Ennadhour","Hammam Zriba","Saouef","Zaghouan"]}
+]
