@@ -685,6 +685,7 @@ const SidebarController = {
   },
 
   toggleSidebar() {
+    if (!this.sidebar) return;
     if (window.innerWidth < 768) {
       this.sidebar.classList.toggle('show');
       if (this.overlay) this.overlay.classList.toggle('show');
@@ -698,6 +699,7 @@ const SidebarController = {
   },
 
   collapseSidebar() {
+    if (!this.sidebar) return;
     AdminState.sidebarCollapsed = true;
     this.sidebar.classList.add('collapsed');
     if (this.mainContent) this.mainContent.classList.add('sidebar-collapsed');
@@ -705,6 +707,7 @@ const SidebarController = {
   },
 
   expandSidebar() {
+    if (!this.sidebar) return;
     AdminState.sidebarCollapsed = false;
     this.sidebar.classList.remove('collapsed');
     if (this.mainContent) this.mainContent.classList.remove('sidebar-collapsed');
@@ -712,6 +715,7 @@ const SidebarController = {
   },
 
   closeSidebar() {
+    if (!this.sidebar) return;
     if (window.innerWidth < 768) {
       this.sidebar.classList.remove('show');
       if (this.overlay) this.overlay.classList.remove('show');
@@ -719,6 +723,7 @@ const SidebarController = {
   },
 
   handleResize() {
+    if (!this.sidebar) return;
     if (window.innerWidth >= 768) {
       this.sidebar.classList.remove('show');
       if (this.overlay) this.overlay.classList.remove('show');
@@ -1303,8 +1308,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize theme first
   Utils.initializeTheme();
   
-  // Initialize all systems
-  SidebarController.init();
+  // Initialize all systems (only when relevant DOM exists – e.g. skip sidebar in content iframe)
+  if (document.getElementById('sidebar')) SidebarController.init();
   MobileNavController.init();
   TooltipSystem.init();
   SearchSystem.init();
@@ -1342,7 +1347,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize performance monitoring
   initPerformanceMonitoring();
   
-  console.log('🚀 Ultra-Modern Admin Panel initialized successfully!');
+  if (window.self === window.top) {
+    console.log('🚀 Ultra-Modern Admin Panel initialized successfully!');
+  }
 });
 
 // Legacy function compatibility
@@ -1406,10 +1413,13 @@ function initThemeSystem() {
 
 // Performance Monitoring
 function initPerformanceMonitoring() {
-  // Monitor page load performance
   window.addEventListener('load', () => {
+    if (window.self !== window.top) return;
     const perfData = performance.getEntriesByType('navigation')[0];
-    console.log('Page load time:', perfData.loadEventEnd - perfData.loadEventStart, 'ms');
+    if (perfData && typeof perfData.loadEventEnd === 'number' && perfData.loadEventEnd > 0) {
+      const loadTime = perfData.loadEventEnd - (perfData.fetchStart || perfData.startTime);
+      if (loadTime >= 0) console.log('Page load time:', Math.round(loadTime), 'ms');
+    }
   });
   
   // Monitor long tasks

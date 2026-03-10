@@ -32,7 +32,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $settings->setSetting("plugin_{$plugin_name}_config", json_encode($config));
             
             $success_msg = $t('plugin_updated_successfully', 'Plugin updated successfully!');
-            header('Location: ?page=plugins&success=' . urlencode($success_msg));
+            if (!empty($_POST['from_shell_modal'])) {
+                header('Location: index.php?content=1&modal_close=1&success=' . urlencode($success_msg));
+            } else {
+                header('Location: ?page=plugins&success=' . urlencode($success_msg));
+            }
             exit;
         }
     }
@@ -128,7 +132,11 @@ foreach ($available_plugins as $key => $plugin) {
     $grouped_plugins[$category][] = $plugin;
 }
 ?>
-
+<?php
+$plugins_modal_only = isset($plugins_modal_only) && $plugins_modal_only;
+$modal_open = $plugins_modal_only;
+if (!$plugins_modal_only):
+?>
 <!-- Modern Plugins Management Interface -->
 <div class="plugins-container">
     
@@ -141,42 +149,62 @@ foreach ($available_plugins as $key => $plugin) {
         </div>
     <?php endif; ?>
     
-    <!-- Statistics Cards -->
-    <div class="stats-cards-grid">
-        <div class="stat-card blue">
-            <div class="stat-icon">
-                <i class="fas fa-puzzle-piece"></i>
-            </div>
-            <div class="stat-content">
-                <h3><?php echo count($available_plugins); ?></h3>
-                <p><?php echo $t('available_plugins', 'Available Plugins'); ?></p>
-            </div>
-        </div>
-        <div class="stat-card green">
-            <div class="stat-icon">
-                <i class="fas fa-check-circle"></i>
-            </div>
-            <div class="stat-content">
-                <h3><?php echo $active_count; ?></h3>
-                <p><?php echo $t('active_plugins', 'Active Plugins'); ?></p>
+    <!-- Statistics Cards (Argon-style) -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('available_plugins', 'Available Plugins'); ?></h5>
+                        <span class="stat-card-value"><?php echo count($available_plugins); ?></span>
+                        <p class="stat-card-footer neutral"><?php echo $t('plugins', 'plugins'); ?></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon primary"><i class="fas fa-puzzle-piece"></i></div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="stat-card purple">
-            <div class="stat-icon">
-                <i class="fas fa-credit-card"></i>
-            </div>
-            <div class="stat-content">
-                <h3>2</h3>
-                <p><?php echo $t('payment_methods', 'Payment Methods'); ?></p>
+        <div class="stat-card">
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('active_plugins', 'Active Plugins'); ?></h5>
+                        <span class="stat-card-value"><?php echo $active_count; ?></span>
+                        <p class="stat-card-footer positive"><?php echo $t('active'); ?></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon success"><i class="fas fa-check-circle"></i></div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="stat-card orange">
-            <div class="stat-icon">
-                <i class="fas fa-chart-bar"></i>
+        <div class="stat-card">
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('payment_methods', 'Payment Methods'); ?></h5>
+                        <span class="stat-card-value">2</span>
+                        <p class="stat-card-footer neutral"><?php echo $t('payment', 'Payment'); ?></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon info"><i class="fas fa-credit-card"></i></div>
+                    </div>
+                </div>
             </div>
-            <div class="stat-content">
-                <h3>2</h3>
-                <p><?php echo $t('analytics_tools', 'Analytics Tools'); ?></p>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('analytics_tools', 'Analytics Tools'); ?></h5>
+                        <span class="stat-card-value">2</span>
+                        <p class="stat-card-footer neutral"><?php echo $t('analytics', 'Analytics'); ?></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon warning"><i class="fas fa-chart-bar"></i></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -235,6 +263,7 @@ foreach ($available_plugins as $key => $plugin) {
     <?php endforeach; ?>
 
 </div>
+<?php endif; ?>
 
 <!-- Plugin Configuration Modal -->
 <div class="modal-overlay" id="pluginModal">
@@ -248,6 +277,7 @@ foreach ($available_plugins as $key => $plugin) {
         
         <form method="POST" id="pluginForm">
             <?php echo CsrfHelper::getTokenField(); ?>
+            <?php if ($modal_open): ?><input type="hidden" name="from_shell_modal" value="1"><?php endif; ?>
             <div class="modal-body">
                 <input type="hidden" name="action" value="update_plugin">
                 <input type="hidden" name="plugin_name" id="pluginName">
@@ -325,7 +355,18 @@ const translations = {
     no_config_required: '<?php echo $t('no_config_required', 'No additional configuration required for this plugin.'); ?>'
 };
 
+function isInShellModalFrame() {
+    return window.parent !== window && window.location.search.indexOf('modal=1') !== -1;
+}
+function isInMainContentFrame() {
+    return window.parent !== window && window.location.search.indexOf('modal=1') === -1;
+}
+
 function configurePlugin(pluginKey) {
+    if (isInMainContentFrame()) {
+        window.parent.postMessage({ type: 'open_plugin_modal', pluginKey: pluginKey || '' }, '*');
+        return;
+    }
     const plugin = pluginsData[pluginKey];
     
     document.getElementById('pluginName').value = pluginKey;
@@ -346,6 +387,10 @@ function configurePlugin(pluginKey) {
 }
 
 function closePluginModal() {
+    if (isInShellModalFrame()) {
+        window.parent.postMessage({ type: 'close_product_modal', refresh: false }, '*');
+        return;
+    }
     document.getElementById('pluginModal').classList.remove('active');
     document.body.style.overflow = '';
 }
@@ -576,6 +621,15 @@ document.getElementById('pluginModal').addEventListener('click', function(e) {
     }
 });
 
+// When loaded in shell modal iframe: open modal for plugin_key from URL
+document.addEventListener('DOMContentLoaded', function() {
+    if (isInShellModalFrame()) {
+        var m = window.location.search.match(/plugin_key=([^&]+)/);
+        var key = m ? decodeURIComponent(m[1]) : '';
+        if (key && pluginsData[key]) configurePlugin(key);
+    }
+});
+
 // Auto-dismiss alerts
 setTimeout(() => {
     document.querySelectorAll('.alert').forEach(alert => {
@@ -631,69 +685,6 @@ setTimeout(() => {
 .alert .btn-close {
     margin-left: auto;
     opacity: 0.5;
-}
-
-/* Statistics Cards */
-.stats-cards-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 3rem;
-}
-
-.stat-card {
-    background: var(--bg-card);
-    border-radius: 6px;
-    padding: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
-}
-
-.stat-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-}
-
-.stat-icon {
-    width: 64px;
-    height: 64px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.75rem;
-    color: var(--text-inverse);
-}
-
-.stat-card.blue .stat-icon {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-}
-
-.stat-card.green .stat-icon {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-}
-
-.stat-card.purple .stat-icon {
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-}
-
-.stat-card.orange .stat-icon {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-}
-
-.stat-content h3 {
-    font-size: 2rem;
-    font-weight: 700;
-    margin: 0 0 0.25rem 0;
-}
-
-.stat-content p {
-    margin: 0;
-    color: var(--text-secondary);
-    font-size: 0.875rem;
 }
 
 /* Plugin Category Section */
@@ -877,8 +868,9 @@ setTimeout(() => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--bg-modal);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     z-index: var(--z-modal-backdrop, 1040);
     display: none;
     align-items: center;
@@ -1120,10 +1112,6 @@ select.form-input option {
 
 /* Responsive */
 @media (max-width: 768px) {
-    .stats-cards-grid {
-        grid-template-columns: 1fr;
-    }
-    
     .plugins-grid {
         grid-template-columns: 1fr;
     }

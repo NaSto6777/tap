@@ -29,7 +29,9 @@ $currency_position = $settings->getSetting('currency_position', 'left');
 $product_id = $_GET['id'] ?? 0;
 
 if (!$product_id) {
-    header('Location: ?page=products');
+    $back = '?page=products';
+    if (isset($_GET['content']) && $_GET['content'] === '1') $back .= '&content=1';
+    header('Location: ' . $back);
     exit;
 }
 
@@ -40,7 +42,9 @@ $stmt->execute([$product_id, $store_id]);
 $product = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$product) {
-    header('Location: ?page=products&error=' . urlencode($t('product_not_found')));
+    $back = '?page=products&error=' . urlencode($t('product_not_found'));
+    if (isset($_GET['content']) && $_GET['content'] === '1') $back .= '&content=1';
+    header('Location: ' . $back);
     exit;
 }
 
@@ -92,7 +96,7 @@ $discount = $product['sale_price'] ? round((($product['price'] - $product['sale_
     <!-- Header Section -->
     <div class="quick-view-header">
         <div class="header-left">
-            <a href="?page=products" class="back-btn">
+            <a href="?page=products<?php echo (isset($_GET['content']) && $_GET['content'] === '1') ? '&content=1' : ''; ?>" class="back-btn">
                 <i class="fas fa-arrow-left"></i> <?php echo $t('back_to_products'); ?>
             </a>
             <div class="product-title-section">
@@ -485,11 +489,10 @@ function saveField(inputEl) {
     const originalValue = valueEl.textContent;
     valueEl.textContent = window.translations.saving;
     
-    fetch('?page=products', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: `action=quick_update_product&product_id=${productId}&field=${fieldName}&value=${encodeURIComponent(value)}`
-    })
+    var csrf = (document.querySelector('meta[name="csrf-token"]') || {}).getAttribute?.('content') || '';
+    var body = 'action=quick_update_product&product_id=' + productId + '&field=' + encodeURIComponent(fieldName) + '&value=' + encodeURIComponent(value);
+    if (csrf) body += '&csrf_token=' + encodeURIComponent(csrf);
+    fetch('?page=products', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: body })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
@@ -541,11 +544,10 @@ function saveField(inputEl) {
 }
 
 function updateToggle(field, value) {
-    fetch('?page=products', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: `action=quick_update_product&product_id=${productId}&field=${field}&value=${value ? 1 : 0}`
-    })
+    var csrf = (document.querySelector('meta[name="csrf-token"]') || {}).getAttribute?.('content') || '';
+    var body = 'action=quick_update_product&product_id=' + productId + '&field=' + encodeURIComponent(field) + '&value=' + (value ? 1 : 0);
+    if (csrf) body += '&csrf_token=' + encodeURIComponent(csrf);
+    fetch('?page=products', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: body })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
@@ -573,20 +575,22 @@ function updateToggle(field, value) {
 }
 
 function editProduct(id) {
-    // Store product ID in sessionStorage and navigate to products page
     sessionStorage.setItem('editProductId', id);
-    window.location.href = '?page=products';
+    var url = '?page=products';
+    if (window.self !== window.top) url += '&content=1';
+    window.location.href = url;
 }
 
 function deleteProduct(id) {
     if (confirm(window.translations.are_you_sure + ' ' + window.translations.delete_product + '?')) {
-        const form = document.createElement('form');
+        var action = '?page=products';
+        if (window.self !== window.top) action += '&content=1';
+        var form = document.createElement('form');
         form.method = 'POST';
-        form.action = '?page=products';
-        form.innerHTML = `
-            <input type="hidden" name="action" value="delete">
-            <input type="hidden" name="product_id" value="${id}">
-        `;
+        form.action = action;
+        var csrf = (document.querySelector('meta[name="csrf-token"]') || {}).getAttribute?.('content') || '';
+        form.innerHTML = '<input type="hidden" name="action" value="delete"><input type="hidden" name="product_id" value="' + id + '">' +
+            (csrf ? '<input type="hidden" name="csrf_token" value="' + csrf.replace(/"/g, '&quot;') + '">' : '');
         document.body.appendChild(form);
         form.submit();
     }
@@ -735,6 +739,11 @@ function showNotification(message, type) {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    position: sticky;
+    top: 1rem;
+    align-self: start;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
 }
 
 .main-image-container {

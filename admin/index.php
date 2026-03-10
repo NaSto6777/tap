@@ -105,6 +105,26 @@ if ($content_only) {
     $pageFile = "pages/{$page}.php";
     $page_title = ucfirst(str_replace('_', ' ', $page));
     $is_rtl = Language::isRTL();
+    // When shell modal is closed after save: return minimal page that tells parent to close overlay and refresh
+    if (isset($_GET['modal_close']) && $_GET['modal_close'] === '1') {
+        header('Content-Type: text/html; charset=UTF-8');
+        $msg = isset($_GET['success']) ? $_GET['success'] : '';
+        $msgJs = json_encode($msg);
+        echo '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body><script>'
+            . 'try{window.parent.postMessage({type:"close_product_modal",refresh:true,message:' . $msgJs . ',variant:"success"}, "*");}catch(e){}'
+            . '</script></body></html>';
+        exit;
+    }
+    // Standalone print page: output raw, no content-frame wrapper
+    if ($page === 'order_bulk_print' && file_exists($pageFile)) {
+        include $pageFile;
+        exit;
+    }
+    $products_modal_only = ($page === 'products' && isset($_GET['modal']) && $_GET['modal'] === '1');
+    $categories_modal_only = ($page === 'categories' && isset($_GET['modal']) && $_GET['modal'] === '1');
+    $plugins_modal_only = ($page === 'plugins' && isset($_GET['modal']) && $_GET['modal'] === '1');
+    $order_status_modal_only = ($page === 'orders' && isset($_GET['modal']) && $_GET['modal'] === 'status');
+    $shell_modal_only = $products_modal_only || $categories_modal_only || $plugins_modal_only || $order_status_modal_only;
     header('Content-Type: text/html; charset=UTF-8');
 ?>
 <!DOCTYPE html>
@@ -136,8 +156,8 @@ if ($content_only) {
         }
     </style>
 </head>
-<body class="content-frame">
-    <div class="content-frame-inner" role="main">
+<body class="content-frame<?php echo $shell_modal_only ? ' content-frame-modal-only' : ''; ?>">
+    <?php if (!$shell_modal_only): ?><div class="content-frame-inner" role="main"><?php endif; ?>
 <?php
     if (file_exists($pageFile)) {
         try {
@@ -150,7 +170,7 @@ if ($content_only) {
         include 'pages/dashboard.php';
     }
 ?>
-    </div>
+    <?php if (!$shell_modal_only): ?></div><?php endif; ?>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/admin.js"></script>

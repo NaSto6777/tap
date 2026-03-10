@@ -155,7 +155,6 @@
   margin: 0;
   padding: 0;
   min-height: 100%;
-  background: var(--bg-primary);
 }
 
 .content-frame-inner {
@@ -175,6 +174,12 @@
 }
 
 .content-frame-doc body.content-frame {
+  min-height: 100vh;
+}
+
+body.content-frame-modal-only {
+  margin: 0;
+  padding: 0;
   min-height: 100vh;
 }
 
@@ -204,4 +209,29 @@
 .content-frame-doc::-webkit-scrollbar-thumb:hover,
 .content-frame-doc body.content-frame::-webkit-scrollbar-thumb:hover {
   background-color: var(--primary-color);
+}
+
+/* ========== Shell modal (outside iframe, full window) ========== */
+.shell-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.shell-modal-overlay.active {
+  display: flex;
+}
+
+.shell-modal-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: transparent;
 }

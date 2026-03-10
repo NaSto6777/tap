@@ -200,6 +200,11 @@ $is_rtl = Language::isRTL();
 
     <div id="shell-toast-container" class="toast-container toast-container-shell" aria-live="polite" aria-atomic="true"></div>
 
+    <!-- Full-window modal host (outside iframe): product add/edit -->
+    <div id="shell-modal-overlay" class="shell-modal-overlay" aria-hidden="true">
+        <iframe id="shell-modal-frame" class="shell-modal-frame" title="Product modal"></iframe>
+    </div>
+
     <nav class="mobile-bottom-nav" id="mobileBottomNav" role="navigation" aria-label="Mobile navigation">
         <ul class="nav-list">
             <li class="nav-item"><a href="index.php?content=1&page=dashboard" class="nav-link <?php echo $page === 'dashboard' ? 'active' : ''; ?>" data-page="dashboard" aria-label="Dashboard"><i class="fas fa-tachometer-alt nav-icon"></i><span class="nav-label">Dashboard</span></a></li>

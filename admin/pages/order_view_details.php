@@ -32,7 +32,9 @@ $order_id = $_GET['id'] ?? 0;
 $print_mode = isset($_GET['print']) && $_GET['print'] == '1';
 
 if (!$order_id) {
-    header('Location: ?page=orders');
+    $back = '?page=orders';
+    if (isset($_GET['content']) && $_GET['content'] === '1') $back .= '&content=1';
+    header('Location: ' . $back);
     exit;
 }
 
@@ -639,7 +641,7 @@ function formatAddress($address) {
             </div>
 
             <!-- Order Totals -->
-            <div class="detail-section">
+            <div class="detail-section order-totals-sticky">
                 <div class="section-header">
                     <h2><i class="fas fa-calculator"></i> <?php echo $t('order_totals', 'Order Totals'); ?></h2>
                 </div>
@@ -674,7 +676,10 @@ function formatAddress($address) {
 
 <script>
 function editOrderStatus(orderId, currentStatus, currentPayment) {
-    // Store order ID and statuses in sessionStorage and navigate to orders page
+    if (window.self !== window.top) {
+        try { window.parent.postMessage({ type: 'open_order_status_modal', orderId: orderId, status: currentStatus || 'pending', payment: currentPayment || 'pending' }, '*'); } catch (e) {}
+        return;
+    }
     sessionStorage.setItem('editOrderStatusId', orderId);
     sessionStorage.setItem('editOrderStatus', currentStatus);
     sessionStorage.setItem('editOrderPayment', currentPayment);
@@ -853,6 +858,12 @@ function editOrderStatus(orderId, currentStatus, currentPayment) {
     grid-template-columns: 1fr 1.5fr;
     gap: 2rem;
     margin-top: 2rem;
+}
+
+.order-totals-sticky {
+    position: sticky;
+    top: 1rem;
+    align-self: start;
 }
 
 .detail-section {

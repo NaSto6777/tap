@@ -101,116 +101,6 @@
   border: 1px solid rgba(129, 140, 248, 0.35);
 }
 
-.analytics-hero-metrics {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: var(--space-4, 1rem);
-  min-width: 240px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.hero-metric {
-  background: rgba(99, 102, 241, 0.08);
-  border-radius: var(--radius-lg);
-  padding: 1rem 1.2rem;
-  border: 1px solid rgba(99, 102, 241, 0.16);
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  box-sizing: border-box;
-  width: 100%;
-  min-width: 0;
-}
-
-[data-theme="dark"] .hero-metric {
-  background: rgba(79, 70, 229, 0.18);
-  border-color: rgba(129, 140, 248, 0.35);
-}
-
-.hero-metric-label {
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-secondary);
-}
-
-.hero-metric-value {
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-/* Overview cards */
-.overview-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--space-4, 1rem);
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.overview-card {
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  padding: 1.2rem 1.35rem;
-  border: 1px solid var(--border-primary);
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  transition: transform var(--transition-transform), box-shadow var(--transition-normal);
-  box-sizing: border-box;
-  width: 100%;
-  min-width: 0;
-}
-
-.overview-card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
-}
-
-.overview-card-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-full);
-  display: grid;
-  place-items: center;
-  font-size: 1.35rem;
-  color: var(--color-primary);
-  background: rgba(99, 102, 241, 0.12);
-}
-
-.overview-card-icon.revenue {
-  color: var(--color-success);
-  background: rgba(16, 185, 129, 0.16);
-}
-.overview-card-icon.orders {
-  color: #f59e0b;
-  background: rgba(245, 158, 11, 0.15);
-}
-.overview-card-icon.conversion {
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.18);
-}
-.overview-card-icon.abandoned {
-  color: #f87171;
-  background: rgba(248, 113, 113, 0.18);
-}
-
-.overview-card-value {
-  font-size: 1.45rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
-}
-
-.overview-card-label {
-  font-size: 0.95rem;
-  color: var(--text-secondary);
-  margin-top: 0.25rem;
-}
-
 /* Cards */
 .chart-card,
 .data-card {
@@ -636,51 +526,6 @@
     font-size: 0.9rem;
   }
   
-  .analytics-hero-metrics {
-    width: 100%;
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-2, 0.5rem);
-    min-width: 0;
-  }
-  
-  .hero-metric {
-    padding: 0.75rem 1rem;
-    min-width: 0;
-  }
-  
-  .hero-metric-value {
-    font-size: 1.15rem;
-  }
-  
-  .hero-metric-label {
-    font-size: 0.75rem;
-  }
-  
-  .overview-cards {
-    grid-template-columns: 1fr;
-    gap: var(--space-3, 0.75rem);
-    min-width: 0;
-  }
-  
-  .overview-card {
-    padding: var(--space-4, 1rem);
-    min-width: 0;
-  }
-  
-  .overview-card-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 1.15rem;
-  }
-  
-  .overview-card-value {
-    font-size: 1.25rem;
-  }
-  
-  .overview-card-label {
-    font-size: 0.85rem;
-  }
-  
   .analytics-charts-grid {
     grid-template-columns: 1fr;
     gap: var(--space-3, 0.75rem);
@@ -771,43 +616,6 @@
     font-size: 0.75rem;
   }
   
-  .analytics-hero-metrics {
-    grid-template-columns: 1fr;
-    gap: var(--space-2, 0.5rem);
-    min-width: auto;
-  }
-  
-  .hero-metric {
-    padding: 0.65rem 0.85rem;
-  }
-  
-  .hero-metric-value {
-    font-size: 1.05rem;
-  }
-  
-  .hero-metric-label {
-    font-size: 0.7rem;
-  }
-  
-  .overview-card {
-    padding: var(--space-3, 0.75rem);
-    gap: var(--space-3, 0.75rem);
-  }
-  
-  .overview-card-icon {
-    width: 36px;
-    height: 36px;
-    font-size: 1rem;
-  }
-  
-  .overview-card-value {
-    font-size: 1.15rem;
-  }
-  
-  .overview-card-label {
-    font-size: 0.8rem;
-  }
-  
   .chart-card-header,
   .data-card-header {
     padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
@@ -866,10 +674,6 @@
   .meta-chip {
     padding: 0.3rem 0.55rem;
     font-size: 0.7rem;
-  }
-  
-  .overview-card {
-    padding: var(--space-2, 0.5rem);
   }
   
   .chart-card-body,

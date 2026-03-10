@@ -14,10 +14,19 @@
     return 'index.php?content=1&page=' + encodeURIComponent(page);
   }
 
+  /** Map iframe page to sidebar nav key (e.g. order_view_details -> orders) */
+  function navPageFromContentPage(page) {
+    if (!page) return page;
+    var map = { order_view_details: 'orders', category_view_details: 'categories', product_quick_view: 'products' };
+    return map[page] || page;
+  }
+
   function setActiveNav(page) {
+    var navPage = navPageFromContentPage(page);
     document.querySelectorAll('.sidebar .nav-link[data-page], .mobile-bottom-nav .nav-link[data-page]').forEach(function(a) {
-      a.classList.toggle('active', a.getAttribute('data-page') === page);
-      a.setAttribute('aria-current', a.getAttribute('data-page') === page ? 'page' : 'false');
+      var isActive = a.getAttribute('data-page') === navPage;
+      a.classList.toggle('active', isActive);
+      a.setAttribute('aria-current', isActive ? 'page' : 'false');
     });
   }
 
@@ -95,8 +104,79 @@
   }
 
   window.addEventListener('message', function(e) {
-    if (!e.data || e.data.type !== 'toast') return;
-    showShellToast(e.data.message, e.data.variant || 'info');
+    if (!e.data) return;
+    if (e.data.type === 'content_page' && e.data.page) {
+      setActiveNav(e.data.page);
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({ page: e.data.page }, '', 'index.php?page=' + encodeURIComponent(e.data.page));
+      }
+      return;
+    }
+    if (e.data.type === 'toast') {
+      showShellToast(e.data.message, e.data.variant || 'info');
+      return;
+    }
+    if (e.data.type === 'open_product_modal') {
+      const productId = e.data.productId != null ? e.data.productId : null;
+      const overlay = document.getElementById('shell-modal-overlay');
+      const modalFrame = document.getElementById('shell-modal-frame');
+      if (!overlay || !modalFrame) return;
+      let url = 'index.php?content=1&page=products&modal=1';
+      if (productId) url += '&product_id=' + encodeURIComponent(productId);
+      modalFrame.src = url;
+      overlay.classList.add('active');
+      overlay.setAttribute('aria-hidden', 'false');
+      return;
+    }
+    if (e.data.type === 'open_category_modal') {
+      const categoryId = e.data.categoryId != null ? e.data.categoryId : null;
+      const overlay = document.getElementById('shell-modal-overlay');
+      const modalFrame = document.getElementById('shell-modal-frame');
+      if (!overlay || !modalFrame) return;
+      let url = 'index.php?content=1&page=categories&modal=1';
+      if (categoryId) url += '&category_id=' + encodeURIComponent(categoryId);
+      modalFrame.src = url;
+      overlay.classList.add('active');
+      overlay.setAttribute('aria-hidden', 'false');
+      return;
+    }
+    if (e.data.type === 'open_plugin_modal') {
+      const pluginKey = e.data.pluginKey || '';
+      const overlay = document.getElementById('shell-modal-overlay');
+      const modalFrame = document.getElementById('shell-modal-frame');
+      if (!overlay || !modalFrame) return;
+      let url = 'index.php?content=1&page=plugins&modal=1';
+      if (pluginKey) url += '&plugin_key=' + encodeURIComponent(pluginKey);
+      modalFrame.src = url;
+      overlay.classList.add('active');
+      overlay.setAttribute('aria-hidden', 'false');
+      return;
+    }
+    if (e.data.type === 'open_order_status_modal') {
+      const orderId = e.data.orderId != null ? e.data.orderId : 0;
+      const status = e.data.status || 'pending';
+      const payment = e.data.payment || 'pending';
+      const overlay = document.getElementById('shell-modal-overlay');
+      const modalFrame = document.getElementById('shell-modal-frame');
+      if (!overlay || !modalFrame) return;
+      let url = 'index.php?content=1&page=orders&modal=status&order_id=' + encodeURIComponent(orderId) + '&status=' + encodeURIComponent(status) + '&payment=' + encodeURIComponent(payment);
+      modalFrame.src = url;
+      overlay.classList.add('active');
+      overlay.setAttribute('aria-hidden', 'false');
+      return;
+    }
+    if (e.data.type === 'close_product_modal') {
+      const overlay = document.getElementById('shell-modal-overlay');
+      const modalFrame = document.getElementById('shell-modal-frame');
+      if (overlay) {
+        overlay.classList.remove('active');
+        overlay.setAttribute('aria-hidden', 'true');
+      }
+      if (modalFrame) modalFrame.src = 'about:blank';
+      if (e.data.refresh && frame) frame.src = frame.src;
+      if (e.data.message) showShellToast(e.data.message, e.data.variant || 'success');
+      return;
+    }
   });
 
   // Sidebar collapse: sync with main-content margin (admin.js SidebarController may already do this; ensure shell class is applied)

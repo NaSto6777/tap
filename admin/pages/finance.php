@@ -187,59 +187,62 @@ $top_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 
-    <!-- Modern Statistics Grid -->
+    <!-- Statistics Grid (Argon-style) -->
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon primary">
-                    <i class="fas fa-dollar-sign"></i>
-                </div>
-            </div>
-            <div class="stat-card-content">
-                <div class="stat-card-value"><?php echo $currency_position === 'left' ? $currency_symbol . number_format($revenue_stats['paid_revenue'] ?? 0, 2) : number_format($revenue_stats['paid_revenue'] ?? 0, 2) . ' ' . $currency_symbol; ?></div>
-                <div class="stat-card-label"><?php echo $t('total_revenue', 'Total Revenue'); ?></div>
-                <div class="stat-card-change positive">+<?php echo number_format($profit_margin, 1); ?>% <?php echo $t('margin', 'margin'); ?></div>
-            </div>
-        </div>
-        
-        <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon success">
-                    <i class="fas fa-chart-line"></i>
-                </div>
-            </div>
-            <div class="stat-card-content">
-                <div class="stat-card-value"><?php echo $currency_position === 'left' ? $currency_symbol . number_format($net_profit, 2) : number_format($net_profit, 2) . ' ' . $currency_symbol; ?></div>
-                <div class="stat-card-label"><?php echo $t('net_profit', 'Net Profit'); ?></div>
-                <div class="stat-card-change <?php echo $net_profit >= 0 ? 'positive' : 'negative'; ?>">
-                    <?php echo $net_profit >= 0 ? $t('profitable', 'Profitable') : $t('loss', 'Loss'); ?>
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('total_revenue', 'Total Revenue'); ?></h5>
+                        <span class="stat-card-value"><?php echo $currency_position === 'left' ? $currency_symbol . number_format($revenue_stats['paid_revenue'] ?? 0, 2) : number_format($revenue_stats['paid_revenue'] ?? 0, 2) . ' ' . $currency_symbol; ?></span>
+                        <p class="stat-card-footer positive">+<?php echo number_format($profit_margin, 1); ?>% <?php echo $t('margin', 'margin'); ?></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon primary"><i class="fas fa-dollar-sign"></i></div>
+                    </div>
                 </div>
             </div>
         </div>
-        
         <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon warning">
-                    <i class="fas fa-receipt"></i>
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('net_profit', 'Net Profit'); ?></h5>
+                        <span class="stat-card-value"><?php echo $currency_position === 'left' ? $currency_symbol . number_format($net_profit, 2) : number_format($net_profit, 2) . ' ' . $currency_symbol; ?></span>
+                        <p class="stat-card-footer <?php echo $net_profit >= 0 ? 'positive' : 'negative'; ?>"><?php echo $net_profit >= 0 ? $t('profitable', 'Profitable') : $t('loss', 'Loss'); ?></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon success"><i class="fas fa-chart-line"></i></div>
+                    </div>
                 </div>
-            </div>
-            <div class="stat-card-content">
-                <div class="stat-card-value"><?php echo $currency_position === 'left' ? $currency_symbol . number_format($revenue_stats['average_order_value'] ?? 0, 2) : number_format($revenue_stats['average_order_value'] ?? 0, 2) . ' ' . $currency_symbol; ?></div>
-                <div class="stat-card-label"><?php echo $t('avg_order_value', 'Avg Order Value'); ?></div>
-                <div class="stat-card-change positive"><?php echo $t('good_aov', 'Good AOV'); ?></div>
             </div>
         </div>
-        
         <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon danger">
-                    <i class="fas fa-shopping-cart"></i>
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('avg_order_value', 'Avg Order Value'); ?></h5>
+                        <span class="stat-card-value"><?php echo $currency_position === 'left' ? $currency_symbol . number_format($revenue_stats['average_order_value'] ?? 0, 2) : number_format($revenue_stats['average_order_value'] ?? 0, 2) . ' ' . $currency_symbol; ?></span>
+                        <p class="stat-card-footer positive"><?php echo $t('good_aov', 'Good AOV'); ?></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon warning"><i class="fas fa-receipt"></i></div>
+                    </div>
                 </div>
             </div>
-            <div class="stat-card-content">
-                <div class="stat-card-value"><?php echo (int)($revenue_stats['total_orders'] ?? 0); ?></div>
-                <div class="stat-card-label"><?php echo $t('total_orders', 'Total Orders'); ?></div>
-                <div class="stat-card-change positive"><?php echo $t('active_sales', 'Active Sales'); ?></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('total_orders', 'Total Orders'); ?></h5>
+                        <span class="stat-card-value"><?php echo (int)($revenue_stats['total_orders'] ?? 0); ?></span>
+                        <p class="stat-card-footer positive"><?php echo $t('active_sales', 'Active Sales'); ?></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon danger"><i class="fas fa-shopping-cart"></i></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -678,123 +681,6 @@ setTimeout(() => {
     font-size: 0.9375rem;
 }
 
-/* Modern Statistics Grid */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.stat-card {
-    background: var(--bg-card);
-    border-radius: 6px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    border: 1px solid var(--border-primary);
-}
-
-.stat-card:hover {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-}
-
-.stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--color-primary-db), var(--color-accent));
-    border-radius: 16px 16px 0 0;
-}
-
-.stat-card-header {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    margin-bottom: 0;
-    min-height: 0;
-    pointer-events: none;
-}
-
-.stat-card-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    color: white;
-    flex-shrink: 0;
-    position: absolute;
-    top: 1.25rem;
-    right: 1.25rem;
-}
-
-.stat-card-icon.primary {
-    background: linear-gradient(135deg, var(--color-primary-db), var(--color-primary-db-hover));
-}
-
-.stat-card-icon.success {
-    background: linear-gradient(135deg, #10b981, #059669);
-}
-
-.stat-card-icon.warning {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-}
-
-.stat-card-icon.danger {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-}
-
-.stat-card-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding-right: 4.5rem;
-}
-
-.stat-card-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1;
-}
-
-.stat-card-label {
-    color: var(--text-secondary);
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-.stat-card-change {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-.stat-card-change.positive {
-    color: #10b981;
-}
-
-.stat-card-change.negative {
-    color: #ef4444;
-}
-
-.stat-card-change i {
-    font-size: 0.75rem;
-}
-
-
-
-
 /* Finance Row */
 .finance-row {
     display: grid;
@@ -1195,8 +1081,9 @@ setTimeout(() => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     z-index: 10000;
     display: none;
     align-items: center;

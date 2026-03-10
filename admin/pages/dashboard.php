@@ -163,86 +163,77 @@ if ($has_cost_price && $has_shipping_cost_actual) {
 <!-- Modern Dashboard Interface -->
 <div class="dashboard-container">
     
-    <!-- Statistics Cards Grid -->
+    <!-- Statistics Cards Grid (Argon-style) -->
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon primary">
-                    <i class="fas fa-boxes"></i>
-                </div>
-            </div>
-            <div class="stat-card-content">
-            <div class="stat-card-value"><?php echo (int)($stats['products'] ?? 0); ?></div>
-            <div class="stat-card-label"><?php echo $t('active_products'); ?></div>
-            <div class="stat-card-change positive">
-                <i class="fas fa-arrow-up"></i>
-                <span>+12% <?php echo $t('from_last_month'); ?></span>
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('active_products'); ?></h5>
+                        <span class="stat-card-value"><?php echo (int)($stats['products'] ?? 0); ?></span>
+                        <p class="stat-card-footer positive"><i class="fas fa-arrow-up"></i> <span>+12% <?php echo $t('from_last_month'); ?></span></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon primary"><i class="fas fa-boxes"></i></div>
+                    </div>
                 </div>
             </div>
         </div>
-        
         <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon success">
-                    <i class="fas fa-shopping-cart"></i>
-                </div>
-            </div>
-            <div class="stat-card-content">
-            <div class="stat-card-value"><?php echo (int)($stats['orders'] ?? 0); ?></div>
-            <div class="stat-card-label"><?php echo $t('total_orders'); ?></div>
-            <div class="stat-card-change positive">
-                <i class="fas fa-arrow-up"></i>
-                <span>+8% <?php echo $t('from_last_month'); ?></span>
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('total_orders'); ?></h5>
+                        <span class="stat-card-value"><?php echo (int)($stats['orders'] ?? 0); ?></span>
+                        <p class="stat-card-footer positive"><i class="fas fa-arrow-up"></i> <span>+8% <?php echo $t('from_last_month'); ?></span></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon success"><i class="fas fa-shopping-cart"></i></div>
+                    </div>
                 </div>
             </div>
         </div>
-        
         <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon warning">
-                    <i class="fas fa-dollar-sign"></i>
-                </div>
-            </div>
-            <div class="stat-card-content">
-            <div class="stat-card-value"><?php echo $currency_position === 'left' ? $currency_symbol . number_format((float)($stats['revenue'] ?? 0), 2) : number_format((float)($stats['revenue'] ?? 0), 2) . ' ' . $currency_symbol; ?></div>
-            <div class="stat-card-label"><?php echo $t('total_revenue'); ?></div>
-            <div class="stat-card-change positive">
-                <i class="fas fa-arrow-up"></i>
-                <span>+15% <?php echo $t('from_last_month'); ?></span>
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('total_revenue'); ?></h5>
+                        <span class="stat-card-value"><?php echo $currency_position === 'left' ? $currency_symbol . number_format((float)($stats['revenue'] ?? 0), 2) : number_format((float)($stats['revenue'] ?? 0), 2) . ' ' . $currency_symbol; ?></span>
+                        <p class="stat-card-footer positive"><i class="fas fa-arrow-up"></i> <span>+15% <?php echo $t('from_last_month'); ?></span></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon warning"><i class="fas fa-dollar-sign"></i></div>
+                    </div>
                 </div>
             </div>
         </div>
-        
         <?php if ($has_cost_price && $has_shipping_cost_actual): ?>
         <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-                    <i class="fas fa-coins"></i>
-                </div>
-            </div>
-            <div class="stat-card-content">
-            <div class="stat-card-value"><?php echo $currency_position === 'left' ? $currency_symbol . number_format((float)$net_profit, 2) : number_format((float)$net_profit, 2) . ' ' . $currency_symbol; ?></div>
-            <div class="stat-card-label"><?php echo $t('net_profit', 'Net Profit'); ?></div>
-            <div class="stat-card-change positive">
-                <i class="fas fa-chart-line"></i>
-                <span><?php echo $t('after_costs', 'After costs'); ?></span>
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('net_profit', 'Net Profit'); ?></h5>
+                        <span class="stat-card-value"><?php echo $currency_position === 'left' ? $currency_symbol . number_format((float)$net_profit, 2) : number_format((float)$net_profit, 2) . ' ' . $currency_symbol; ?></span>
+                        <p class="stat-card-footer positive"><i class="fas fa-chart-line"></i> <span><?php echo $t('after_costs', 'After costs'); ?></span></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon success"><i class="fas fa-coins"></i></div>
+                    </div>
                 </div>
             </div>
         </div>
         <?php endif; ?>
-        
         <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon danger">
-                    <i class="fas fa-clock"></i>
-                </div>
-            </div>
-            <div class="stat-card-content">
-            <div class="stat-card-value"><?php echo (int)($stats['pending_orders'] ?? 0); ?></div>
-            <div class="stat-card-label"><?php echo $t('pending_orders'); ?></div>
-            <div class="stat-card-change negative">
-                <i class="fas fa-exclamation-circle"></i>
-                <span><?php echo $t('action_needed'); ?></span>
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('pending_orders'); ?></h5>
+                        <span class="stat-card-value"><?php echo (int)($stats['pending_orders'] ?? 0); ?></span>
+                        <p class="stat-card-footer negative"><i class="fas fa-exclamation-circle"></i> <span><?php echo $t('action_needed'); ?></span></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon danger"><i class="fas fa-clock"></i></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -297,10 +288,49 @@ if ($has_cost_price && $has_shipping_cost_actual) {
     </div>
     <?php endif; ?>
 
+    <!-- Revenue Analytics (top) -->
+    <div class="modern-card revenue-analytics-card">
+        <div class="modern-card-header">
+            <div class="modern-card-title">
+                <i class="fas fa-chart-line"></i>
+                <?php echo $t('revenue_analytics'); ?>
+            </div>
+            <div class="chart-controls">
+                <select class="chart-period-select">
+                    <option value="6"><?php echo $t('last_6_months'); ?></option>
+                    <option value="12"><?php echo $t('last_12_months'); ?></option>
+                    <option value="24"><?php echo $t('last_2_years'); ?></option>
+                </select>
+            </div>
+        </div>
+        <div class="modern-card-body">
+            <div class="chart-container">
+                <canvas id="revenueChart" width="400" height="200"></canvas>
+            </div>
+            <div class="chart-stats">
+                <div class="chart-stat-item">
+                    <div class="chart-stat-value"><?php echo $currency_position === 'left' ? $currency_symbol . number_format($stats['revenue'], 2) : number_format($stats['revenue'], 2) . ' ' . $currency_symbol; ?></div>
+                    <div class="chart-stat-label"><?php echo $t('total_revenue'); ?></div>
+                </div>
+                <div class="chart-stat-item">
+                    <div class="chart-stat-value"><?php echo $stats['orders']; ?></div>
+                    <div class="chart-stat-label"><?php echo $t('total_orders'); ?></div>
+                </div>
+                <div class="chart-stat-item">
+                    <div class="chart-stat-value"><?php 
+                        $avgValue = $stats['orders'] > 0 ? number_format($stats['revenue'] / $stats['orders'], 2) : '0.00';
+                        echo $currency_position === 'left' ? $currency_symbol . $avgValue : $avgValue . ' ' . $currency_symbol; 
+                    ?></div>
+                    <div class="chart-stat-label"><?php echo $t('avg_order_value'); ?></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Content Row -->
     <div class="main-content-grid">
         <!-- Recent Orders -->
-        <div class="modern-card">
+        <div class="modern-card dashboard-recent-orders-card">
             <div class="modern-card-header">
                 <div class="modern-card-title">
                     <i class="fas fa-shopping-bag"></i>
@@ -310,58 +340,54 @@ if ($has_cost_price && $has_shipping_cost_actual) {
                     <i class="fas fa-eye"></i> <?php echo $t('view_all'); ?>
                 </a>
             </div>
-            <div class="modern-card-body">
-                <div class="table-container">
-                    <table class="modern-table">
-                            <thead>
-                                <tr>
-                                    <th><?php echo $t('order_number_short'); ?></th>
-                                    <th><?php echo $t('customer'); ?></th>
-                                    <th><?php echo $t('items'); ?></th>
-                                    <th><?php echo $t('total'); ?></th>
-                                    <th><?php echo $t('status'); ?></th>
-                                    <th><?php echo $t('date'); ?></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php if (!empty($recent_orders)): ?>
-                                    <?php foreach (array_slice($recent_orders, 0, 5) as $order): ?>
-                                        <tr>
-                                            <td>
-                                                <strong class="order-number"><?php echo htmlspecialchars($order['order_number']); ?></strong>
-                                            </td>
-                                            <td>
-                                                <div class="customer-info">
-                                                    <div class="customer-name"><?php echo htmlspecialchars($order['customer_name']); ?></div>
-                                                    <div class="customer-email"><?php echo htmlspecialchars($order['customer_email']); ?></div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="item-badge">
-                                                    <span class="item-count"><?php echo $order['item_count']; ?></span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <strong class="price"><?php echo $currency_position === 'left' ? $currency_symbol . number_format($order['total_amount'], 2) : number_format($order['total_amount'], 2) . ' ' . $currency_symbol; ?></strong>
-                                            </td>
-                                            <td>
-                                                <span class="status-badge status-<?php echo $order['status']; ?>">
-                                                    <?php echo ucfirst($order['status']); ?>
-                                                </span>
-                                            </td>
-                                            <td class="date"><?php echo date('M j, Y', strtotime($order['created_at'])); ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
+            <div class="modern-card-body recent-orders-body">
+                <div class="recent-orders-table-wrap">
+                    <table class="recent-orders-table">
+                        <thead>
+                            <tr>
+                                <th><?php echo $t('order_number_short'); ?></th>
+                                <th><?php echo $t('customer'); ?></th>
+                                <th><?php echo $t('items'); ?></th>
+                                <th><?php echo $t('total'); ?></th>
+                                <th><?php echo $t('status'); ?></th>
+                                <th><?php echo $t('date'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($recent_orders)): ?>
+                                <?php foreach (array_slice($recent_orders, 0, 5) as $order): ?>
                                     <tr>
-                                        <td colspan="6" class="empty-state">
-                                            <i class="fas fa-shopping-bag fa-3x"></i>
-                                            <p><?php echo $t('no_orders_yet'); ?></p>
+                                        <td>
+                                            <a href="?page=order_view_details&amp;id=<?php echo (int)($order['id'] ?? 0); ?>" class="recent-order-id"><?php echo htmlspecialchars($order['order_number']); ?></a>
                                         </td>
+                                        <td>
+                                            <div class="recent-order-customer">
+                                                <span class="recent-order-customer-name"><?php echo htmlspecialchars($order['customer_name']); ?></span>
+                                                <span class="recent-order-customer-email"><?php echo htmlspecialchars($order['customer_email']); ?></span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="recent-order-items"><?php echo (int)($order['item_count'] ?? 0); ?></span>
+                                        </td>
+                                        <td>
+                                            <span class="recent-order-total"><?php echo $currency_position === 'left' ? $currency_symbol . number_format($order['total_amount'], 2) : number_format($order['total_amount'], 2) . ' ' . $currency_symbol; ?></span>
+                                        </td>
+                                        <td>
+                                            <span class="recent-order-status status-<?php echo preg_replace('/[^a-z0-9]/', '', strtolower($order['status'])); ?>"><?php echo ucfirst($order['status']); ?></span>
+                                        </td>
+                                        <td class="recent-order-date"><?php echo date('M j, Y', strtotime($order['created_at'])); ?></td>
                                     </tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="6" class="recent-orders-empty">
+                                        <i class="fas fa-shopping-bag"></i>
+                                        <p><?php echo $t('no_orders_yet'); ?></p>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -405,47 +431,6 @@ if ($has_cost_price && $has_shipping_cost_actual) {
             </div>
         </div>
     </div>
-
-    <!-- Revenue Chart -->
-    <div class="modern-card">
-        <div class="modern-card-header">
-            <div class="modern-card-title">
-                <i class="fas fa-chart-line"></i>
-                <?php echo $t('revenue_analytics'); ?>
-            </div>
-            <div class="chart-controls">
-                <select class="chart-period-select">
-                    <option value="6"><?php echo $t('last_6_months'); ?></option>
-                    <option value="12"><?php echo $t('last_12_months'); ?></option>
-                    <option value="24"><?php echo $t('last_2_years'); ?></option>
-                </select>
-            </div>
-        </div>
-        <div class="modern-card-body">
-            <div class="chart-container">
-                <canvas id="revenueChart" width="400" height="200"></canvas>
-                        </div>
-            <div class="chart-stats">
-                <div class="chart-stat-item">
-                    <div class="chart-stat-value"><?php echo $currency_position === 'left' ? $currency_symbol . number_format($stats['revenue'], 2) : number_format($stats['revenue'], 2) . ' ' . $currency_symbol; ?></div>
-                    <div class="chart-stat-label"><?php echo $t('total_revenue'); ?></div>
-                    </div>
-                <div class="chart-stat-item">
-                    <div class="chart-stat-value"><?php echo $stats['orders']; ?></div>
-                    <div class="chart-stat-label"><?php echo $t('total_orders'); ?></div>
-                        </div>
-                <div class="chart-stat-item">
-                    <div class="chart-stat-value"><?php 
-                        $avgValue = $stats['orders'] > 0 ? number_format($stats['revenue'] / $stats['orders'], 2) : '0.00';
-                        echo $currency_position === 'left' ? $currency_symbol . $avgValue : $avgValue . ' ' . $currency_symbol; 
-                    ?></div>
-                    <div class="chart-stat-label"><?php echo $t('avg_order_value'); ?></div>
-                    </div>
-                        </div>
-                    </div>
-                        </div>
-                
-                        </div>
 
 <!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -713,120 +698,6 @@ document.addEventListener('DOMContentLoaded', function() {
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
-/* Statistics Cards Grid */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.stat-card {
-    background: var(--bg-card);
-    border-radius: 6px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    border: 1px solid var(--border-primary);
-}
-
-.stat-card:hover {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-}
-
-.stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--color-primary-db), var(--color-accent));
-    border-radius: 16px 16px 0 0;
-}
-
-.stat-card-header {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    margin-bottom: 0;
-    min-height: 0;
-    pointer-events: none;
-}
-
-.stat-card-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    color: white;
-    flex-shrink: 0;
-    position: absolute;
-    top: 1.25rem;
-    right: 1.25rem;
-}
-
-.stat-card-icon.primary {
-    background: linear-gradient(135deg, var(--color-primary-db), var(--color-primary-db-hover));
-}
-
-.stat-card-icon.success {
-    background: linear-gradient(135deg, #10b981, #059669);
-}
-
-.stat-card-icon.warning {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-}
-
-.stat-card-icon.danger {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-}
-
-.stat-card-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding-right: 4.5rem;
-}
-
-.stat-card-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1;
-}
-
-.stat-card-label {
-    color: var(--text-secondary);
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-.stat-card-change {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-.stat-card-change.positive {
-    color: #10b981;
-}
-
-.stat-card-change.negative {
-    color: #ef4444;
-}
-
-.stat-card-change i {
-    font-size: 0.75rem;
-}
-
 /* Alert Cards */
 .alert-cards {
     display: grid;
@@ -989,6 +860,140 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .modern-table tbody tr:last-child td {
     border-bottom: none;
+}
+
+/* Revenue Analytics (top section) */
+.revenue-analytics-card {
+    margin-bottom: 1.5rem;
+}
+
+/* Recent Orders – redesigned table */
+.dashboard-recent-orders-card .modern-card-body {
+    padding: 0;
+}
+.recent-orders-body {
+    padding: 0 !important;
+}
+.recent-orders-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.recent-orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+}
+.recent-orders-table thead {
+    background: var(--bg-secondary);
+}
+.recent-orders-table thead th {
+    text-align: left;
+    padding: 0.875rem 1.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-primary);
+    white-space: nowrap;
+}
+.recent-orders-table tbody td {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-primary);
+    color: var(--text-secondary);
+    vertical-align: middle;
+}
+.recent-orders-table tbody tr {
+    transition: background 0.15s ease;
+}
+.recent-orders-table tbody tr:hover {
+    background: var(--bg-secondary);
+}
+.recent-orders-table tbody tr:last-child td {
+    border-bottom: none;
+}
+.recent-order-id {
+    font-weight: 600;
+    color: var(--color-primary-db, var(--text-primary));
+    text-decoration: none;
+}
+.recent-order-id:hover {
+    text-decoration: underline;
+}
+.recent-order-customer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+.recent-order-customer-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+.recent-order-customer-email {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+}
+.recent-order-items {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+.recent-order-total {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.recent-order-date {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+.recent-order-status {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+.recent-order-status.status-pending {
+    background: var(--color-warning-light, rgba(245, 158, 11, 0.15));
+    color: var(--color-warning-dark, #b45309);
+}
+.recent-order-status.status-processing {
+    background: var(--color-info-light, rgba(59, 130, 246, 0.15));
+    color: var(--color-info-dark, #1d4ed8);
+}
+.recent-order-status.status-shipped {
+    background: var(--color-primary-light, rgba(99, 102, 241, 0.15));
+    color: var(--color-primary-dark, #4338ca);
+}
+.recent-order-status.status-delivered {
+    background: var(--color-success-light, rgba(16, 185, 129, 0.15));
+    color: var(--color-success-dark, #047857);
+}
+.recent-order-status.status-cancelled {
+    background: var(--color-error-light, rgba(239, 68, 68, 0.15));
+    color: var(--color-error-dark, #b91c1c);
+}
+.recent-orders-empty {
+    text-align: center;
+    padding: 3rem 1.5rem !important;
+    color: var(--text-muted);
+}
+.recent-orders-empty i {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.5;
+}
+.recent-orders-empty p {
+    margin: 0;
+    font-size: 0.9375rem;
 }
 
 .order-number {

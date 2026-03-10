@@ -107,9 +107,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
         
-        // Redirect after successful save
+        // Redirect after successful save (from shell modal: close overlay and refresh main frame)
         if ($save_success && empty($save_error)) {
-            header('Location: ?page=categories&success=' . urlencode($action === 'add' ? $t('category_added_successfully') : $t('category_updated_successfully')));
+            $msg = $action === 'add' ? $t('category_added_successfully') : $t('category_updated_successfully');
+            if (!empty($_POST['from_shell_modal'])) {
+                header('Location: index.php?content=1&modal_close=1&success=' . urlencode($msg));
+            } else {
+                header('Location: ?page=categories&success=' . urlencode($msg));
+            }
             exit;
         }
     }
@@ -323,7 +328,11 @@ $stmt = $conn->prepare($max_level_query);
 $stmt->execute([$store_id]);
 $max_level = $stmt->fetch(PDO::FETCH_ASSOC)['max_level'] ?? 1;
 ?>
-
+<?php
+$categories_modal_only = isset($categories_modal_only) && $categories_modal_only;
+$modal_open = $categories_modal_only;
+if (!$categories_modal_only):
+?>
 <!-- Modern Category Management Interface -->
 <div class="category-management-container">
     
@@ -352,68 +361,61 @@ $max_level = $stmt->fetch(PDO::FETCH_ASSOC)['max_level'] ?? 1;
         </div>
     <?php endif; ?>
     
-    <!-- Key Metrics -->
+    <!-- Key Metrics (Argon-style) -->
     <section class="stats-grid">
         <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon primary">
-                    <i class="fas fa-folder-open"></i>
-                </div>
-            </div>
-            <div class="stat-card-content">
-                <div class="stat-card-value"><?php echo (int)($stats['total'] ?? 0); ?></div>
-                <div class="stat-card-label"><?php echo $t('total_categories'); ?></div>
-                <div class="stat-card-change positive">
-                    <i class="fas fa-arrow-up"></i>
-                    <span><?php echo $t('all_categories'); ?></span>
-                </div>
-            </div>
-        </div>
-        
-        <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon success">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-            </div>
-            <div class="stat-card-content">
-                <div class="stat-card-value"><?php echo (int)($stats['active'] ?? 0); ?></div>
-                <div class="stat-card-label"><?php echo $t('active_categories'); ?></div>
-                <div class="stat-card-change positive">
-                    <i class="fas fa-arrow-trend-up"></i>
-                    <span><?php echo $stats['total'] > 0 ? round(($stats['active'] / $stats['total']) * 100) : 0; ?>% <?php echo $t('active'); ?></span>
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('total_categories'); ?></h5>
+                        <span class="stat-card-value"><?php echo (int)($stats['total'] ?? 0); ?></span>
+                        <p class="stat-card-footer positive"><i class="fas fa-arrow-up"></i> <span><?php echo $t('all_categories'); ?></span></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon primary"><i class="fas fa-folder-open"></i></div>
+                    </div>
                 </div>
             </div>
         </div>
-        
         <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon warning">
-                    <i class="fas fa-sitemap"></i>
-                </div>
-            </div>
-            <div class="stat-card-content">
-                <div class="stat-card-value"><?php echo (int)($stats['root_categories'] ?? 0); ?></div>
-                <div class="stat-card-label"><?php echo $t('root_categories'); ?></div>
-                <div class="stat-card-change neutral">
-                    <i class="fas fa-sitemap"></i>
-                    <span><?php echo $t('level_1_categories'); ?></span>
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('active_categories'); ?></h5>
+                        <span class="stat-card-value"><?php echo (int)($stats['active'] ?? 0); ?></span>
+                        <p class="stat-card-footer positive"><i class="fas fa-arrow-trend-up"></i> <span><?php echo $stats['total'] > 0 ? round(($stats['active'] / $stats['total']) * 100) : 0; ?>% <?php echo $t('active'); ?></span></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon success"><i class="fas fa-check-circle"></i></div>
+                    </div>
                 </div>
             </div>
         </div>
-        
         <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon danger">
-                    <i class="fas fa-star"></i>
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('root_categories'); ?></h5>
+                        <span class="stat-card-value"><?php echo (int)($stats['root_categories'] ?? 0); ?></span>
+                        <p class="stat-card-footer neutral"><i class="fas fa-sitemap"></i> <span><?php echo $t('level_1_categories'); ?></span></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon warning"><i class="fas fa-sitemap"></i></div>
+                    </div>
                 </div>
             </div>
-            <div class="stat-card-content">
-                <div class="stat-card-value"><?php echo (int)($stats['featured'] ?? 0); ?></div>
-                <div class="stat-card-label"><?php echo $t('featured'); ?></div>
-                <div class="stat-card-change warning">
-                    <i class="fas fa-star"></i>
-                    <span><?php echo $t('highlighted_categories'); ?></span>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('featured'); ?></h5>
+                        <span class="stat-card-value"><?php echo (int)($stats['featured'] ?? 0); ?></span>
+                        <p class="stat-card-footer neutral"><i class="fas fa-star"></i> <span><?php echo $t('highlighted_categories'); ?></span></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon danger"><i class="fas fa-star"></i></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -478,13 +480,18 @@ $max_level = $stmt->fetch(PDO::FETCH_ASSOC)['max_level'] ?? 1;
             <div class="results-info">
                 <?php echo $t('showing_categories'); ?> <?php echo count($categories); ?> <?php echo $t('of_categories'); ?> <?php echo $total_categories; ?> <?php echo $t('categories'); ?>
             </div>
-            <div class="view-toggle">
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-primary" onclick="openCategoryModal()">
+                    <i class="fas fa-plus me-1"></i> <?php echo $t('add_new_category'); ?>
+                </button>
+                <div class="view-toggle">
                 <button class="view-btn active" data-view="grid" onclick="switchView('grid')">
                     <i class="fas fa-th-large"></i>
                 </button>
                 <button class="view-btn" data-view="list" onclick="switchView('list')">
                     <i class="fas fa-list"></i>
                 </button>
+            </div>
             </div>
         </header>
 
@@ -617,9 +624,10 @@ $max_level = $stmt->fetch(PDO::FETCH_ASSOC)['max_level'] ?? 1;
         <?php endif; ?>
     </section>
 </div>
+<?php endif; ?>
 
 <!-- Category Modal -->
-<div class="modal-overlay" id="categoryModal">
+<div class="modal-overlay<?php echo $modal_open ? ' active' : ''; ?>" id="categoryModal">
     <div class="modal-container">
         <div class="modal-header">
             <h2><i class="fas fa-folder"></i> <span id="modalTitle"><?php echo $t('add_new_category'); ?></span></h2>
@@ -630,6 +638,7 @@ $max_level = $stmt->fetch(PDO::FETCH_ASSOC)['max_level'] ?? 1;
         
         <form method="POST" id="categoryForm" enctype="multipart/form-data">
             <?php echo CsrfHelper::getTokenField(); ?>
+            <?php if ($modal_open): ?><input type="hidden" name="from_shell_modal" value="1"><?php endif; ?>
             <div class="modal-body">
                 <input type="hidden" name="action" value="add" id="formAction">
                 <input type="hidden" name="category_id" id="categoryId">
@@ -823,8 +832,20 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     });
 });
 
+// Detect if this page is loaded in the shell's full-window modal iframe
+function isInShellModalFrame() {
+    return window.parent !== window && window.location.search.indexOf('modal=1') !== -1;
+}
+function isInMainContentFrame() {
+    return window.parent !== window && window.location.search.indexOf('modal=1') === -1;
+}
+
 // Modal functions
 function openCategoryModal(categoryId = null) {
+    if (isInMainContentFrame()) {
+        window.parent.postMessage({ type: 'open_category_modal', categoryId: categoryId != null ? categoryId : null }, '*');
+        return;
+    }
     document.getElementById('categoryModal').classList.add('active');
     document.body.style.overflow = 'hidden';
     
@@ -858,8 +879,9 @@ function openCategoryModal(categoryId = null) {
             primaryBtn.onclick = null;
         }
         
-        // Load category data via AJAX
-        fetch('?page=categories', {
+        // Load category data via AJAX (use content=1 when in iframe so response is JSON)
+        var fetchUrl = (window.parent !== window) ? (window.location.pathname + '?content=1&page=categories') : '?page=categories';
+        fetch(fetchUrl, {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
             body: `action=get_category&category_id=${categoryId}`
@@ -918,6 +940,7 @@ function openCategoryModal(categoryId = null) {
         .catch(error => {
             console.error('Error:', error);
             alert(window.translations.error_loading_category);
+            closeCategoryModal();
         });
     }
 }
@@ -973,6 +996,10 @@ function updateCategoryPrimaryAction() {
 }
 
 function closeCategoryModal() {
+    if (isInShellModalFrame()) {
+        window.parent.postMessage({ type: 'close_product_modal', refresh: false }, '*');
+        return;
+    }
     document.getElementById('categoryModal').classList.remove('active');
     document.body.style.overflow = '';
     document.getElementById('categoryForm').reset();
@@ -1118,7 +1145,7 @@ function switchView(view) {
     grid.className = view === 'grid' ? 'categories-grid' : 'categories-list';
 }
 
-// Check for category ID from view details
+// Check for category ID from view details; when in shell modal iframe init modal (add or edit)
 document.addEventListener('DOMContentLoaded', function() {
     const editCategoryId = sessionStorage.getItem('editCategoryId');
     if (editCategoryId) {
@@ -1126,6 +1153,10 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => {
             editCategory(parseInt(editCategoryId));
         }, 100);
+    }
+    if (isInShellModalFrame()) {
+        var m = window.location.search.match(/category_id=(\d+)/);
+        openCategoryModal(m ? parseInt(m[1], 10) : null);
     }
 });
 
@@ -1135,7 +1166,12 @@ function editCategory(id) {
 }
 
 function viewCategory(id) {
-    window.location.href = '?page=category_view_details&id=' + id;
+    var isFrame = window.self !== window.top;
+    var params = new URLSearchParams(window.location.search);
+    params.set('page', 'category_view_details');
+    params.set('id', String(id));
+    if (isFrame) params.set('content', '1');
+    window.location.href = (window.location.pathname || 'index.php') + '?' + params.toString();
 }
 
 function deleteCategory(id) {

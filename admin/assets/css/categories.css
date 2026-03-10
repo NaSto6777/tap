@@ -40,125 +40,7 @@
   box-shadow: 0 18px 32px -16px rgba(15, 23, 42, 0.45);
 }
 
-.stats-grid {
-  display: grid;
-  gap: clamp(1rem, 2vw, 1.5rem);
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.stat-card {
-  background: var(--bg-card);
-  border-radius: 6px;
-  border: 1px solid var(--border-primary);
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.stat-card:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-}
-
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--color-primary-db), var(--color-accent));
-  border-radius: 6px 6px 0 0;
-}
-
-.stat-card-header {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin-bottom: 0;
-  min-height: 0;
-  pointer-events: none;
-}
-
-.stat-card-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  color: white;
-  flex-shrink: 0;
-  position: absolute;
-  top: 1.25rem;
-  right: 1.25rem;
-}
-
-.stat-card-icon.primary {
-  background: linear-gradient(135deg, var(--color-primary-db), var(--color-primary-db-hover));
-}
-
-.stat-card-icon.success {
-  background: linear-gradient(135deg, #10b981, #059669);
-}
-
-.stat-card-icon.warning {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-}
-
-.stat-card-icon.danger {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-}
-
-.stat-card-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding-right: 4.5rem;
-}
-
-.stat-card-value {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1;
-}
-
-.stat-card-label {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.stat-card-change {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.stat-card-change.positive {
-  color: #10b981;
-}
-
-.stat-card-change.negative {
-  color: #ef4444;
-}
-
-.stat-card-change.warning {
-  color: #f59e0b;
-}
-
-.stat-card-change.neutral {
-  color: var(--text-secondary);
-}
-
-.stat-card-change i {
-  font-size: 0.75rem;
-}
+/* Stats grid/cards: see admin.css (single source) */
 
 .filters-section {
   background: var(--bg-card);
@@ -651,8 +533,9 @@ input:checked + .slider::before {
   align-items: center;
   justify-content: center;
   padding: clamp(1.5rem, 3vw, 2.5rem);
-  background: rgba(15, 23, 42, 0.68);
-  backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   z-index: var(--z-modal-backdrop);
 }
 

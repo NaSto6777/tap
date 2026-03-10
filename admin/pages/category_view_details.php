@@ -28,7 +28,9 @@ $currency_position = $settings->getSetting('currency_position', 'left');
 $category_id = $_GET['id'] ?? 0;
 
 if (!$category_id) {
-    header('Location: ?page=categories');
+    $back = '?page=categories';
+    if (isset($_GET['content']) && $_GET['content'] === '1') $back .= '&content=1';
+    header('Location: ' . $back);
     exit;
 }
 
@@ -42,7 +44,9 @@ $stmt->execute([$category_id, $store_id]);
 $category = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$category) {
-    header('Location: ?page=categories&error=' . urlencode($t('category_not_found', 'Category not found')));
+    $back = '?page=categories&error=' . urlencode($t('category_not_found', 'Category not found'));
+    if (isset($_GET['content']) && $_GET['content'] === '1') $back .= '&content=1';
+    header('Location: ' . $back);
     exit;
 }
 
@@ -109,7 +113,7 @@ while ($current) {
     <!-- Header Section -->
     <div class="category-view-header">
         <div class="header-left">
-            <a href="?page=categories" class="back-btn">
+            <a href="?page=categories<?php echo (isset($_GET['content']) && $_GET['content'] === '1') ? '&content=1' : ''; ?>" class="back-btn">
                 <i class="fas fa-arrow-left"></i> <?php echo $t('back_to_categories', 'Back to Categories'); ?>
             </a>
             <div class="category-title-section">
@@ -798,6 +802,11 @@ function showNotification(message, type) {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    position: sticky;
+    top: 1rem;
+    align-self: start;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
 }
 
 .category-image-container {

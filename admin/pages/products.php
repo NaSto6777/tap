@@ -306,9 +306,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
         
-        // Redirect after successful save
+        // Redirect after successful save (from shell modal: close overlay and refresh main frame)
         if ($save_success && empty($save_error)) {
-            header('Location: ?page=products&success=' . urlencode($action === 'add' ? $t('created_successfully') : $t('updated_successfully')));
+            $msg = $action === 'add' ? $t('created_successfully') : $t('updated_successfully');
+            if (!empty($_POST['from_shell_modal'])) {
+                header('Location: index.php?content=1&modal_close=1&success=' . urlencode($msg));
+            } else {
+                header('Location: ?page=products&success=' . urlencode($msg));
+            }
             exit;
         }
     }
@@ -525,6 +530,11 @@ $stats['low_stock'] = (int)($stats['low_stock'] ?? 0);
 $stats['out_of_stock'] = (int)($stats['out_of_stock'] ?? 0);
 ?>
 
+<?php
+$products_modal_only = isset($products_modal_only) && $products_modal_only;
+$modal_open = $products_modal_only;
+if (!$products_modal_only):
+?>
 <!-- Modern Product Management Interface -->
 <div class="product-management-container">
     
@@ -545,65 +555,61 @@ $stats['out_of_stock'] = (int)($stats['out_of_stock'] ?? 0);
         </div>
     <?php endif; ?>
     
-    <!-- Statistics Cards -->
+    <!-- Statistics Cards (Argon-style) -->
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon primary">
-                <i class="fas fa-boxes"></i>
-            </div>
-            </div>
-            <div class="stat-card-content">
-                <div class="stat-card-value"><?php echo (int)($stats['total'] ?? 0); ?></div>
-                <div class="stat-card-label"><?php echo $t('total_products'); ?></div>
-                <div class="stat-card-change positive">
-                    <i class="fas fa-arrow-up"></i>
-                    <span><?php echo $t('all_products'); ?></span>
-        </div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon success">
-                <i class="fas fa-check-circle"></i>
-            </div>
-            </div>
-            <div class="stat-card-content">
-                <div class="stat-card-value"><?php echo (int)($stats['active'] ?? 0); ?></div>
-                <div class="stat-card-label"><?php echo $t('active_products'); ?></div>
-                <div class="stat-card-change positive">
-                    <i class="fas fa-arrow-up"></i>
-                    <span><?php echo $stats['total'] > 0 ? round(($stats['active'] / $stats['total']) * 100, 1) : 0; ?>%</span>
-        </div>
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('total_products'); ?></h5>
+                        <span class="stat-card-value"><?php echo (int)($stats['total'] ?? 0); ?></span>
+                        <p class="stat-card-footer positive"><i class="fas fa-arrow-up"></i> <span><?php echo $t('all_products'); ?></span></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon primary"><i class="fas fa-boxes"></i></div>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon warning">
-                <i class="fas fa-exclamation-triangle"></i>
-            </div>
-            </div>
-            <div class="stat-card-content">
-                <div class="stat-card-value"><?php echo (int)($stats['low_stock'] ?? 0); ?></div>
-                <div class="stat-card-label"><?php echo $t('low_stock'); ?></div>
-                <div class="stat-card-change <?php echo $stats['low_stock'] > 0 ? 'negative' : 'positive'; ?>">
-                    <i class="fas fa-<?php echo $stats['low_stock'] > 0 ? 'exclamation' : 'check'; ?>"></i>
-                    <span><?php echo $stats['low_stock'] > 0 ? $t('needs_attention') : $t('all_good'); ?></span>
-        </div>
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('active_products'); ?></h5>
+                        <span class="stat-card-value"><?php echo (int)($stats['active'] ?? 0); ?></span>
+                        <p class="stat-card-footer positive"><i class="fas fa-arrow-up"></i> <span><?php echo $stats['total'] > 0 ? round(($stats['active'] / $stats['total']) * 100, 1) : 0; ?>%</span></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon success"><i class="fas fa-check-circle"></i></div>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon danger">
-                <i class="fas fa-times-circle"></i>
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('low_stock'); ?></h5>
+                        <span class="stat-card-value"><?php echo (int)($stats['low_stock'] ?? 0); ?></span>
+                        <p class="stat-card-footer <?php echo $stats['low_stock'] > 0 ? 'negative' : 'positive'; ?>"><i class="fas fa-<?php echo $stats['low_stock'] > 0 ? 'exclamation' : 'check'; ?>"></i> <span><?php echo $stats['low_stock'] > 0 ? $t('needs_attention') : $t('all_good'); ?></span></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon warning"><i class="fas fa-exclamation-triangle"></i></div>
+                    </div>
+                </div>
             </div>
-            </div>
-            <div class="stat-card-content">
-                <div class="stat-card-value"><?php echo (int)($stats['out_of_stock'] ?? 0); ?></div>
-                <div class="stat-card-label"><?php echo $t('out_of_stock'); ?></div>
-                <div class="stat-card-change <?php echo $stats['out_of_stock'] > 0 ? 'negative' : 'positive'; ?>">
-                    <i class="fas fa-<?php echo $stats['out_of_stock'] > 0 ? 'times' : 'check'; ?>"></i>
-                    <span><?php echo $stats['out_of_stock'] > 0 ? $t('restock_needed') : $t('in_stock_status'); ?></span>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('out_of_stock'); ?></h5>
+                        <span class="stat-card-value"><?php echo (int)($stats['out_of_stock'] ?? 0); ?></span>
+                        <p class="stat-card-footer <?php echo $stats['out_of_stock'] > 0 ? 'negative' : 'positive'; ?>"><i class="fas fa-<?php echo $stats['out_of_stock'] > 0 ? 'times' : 'check'; ?>"></i> <span><?php echo $stats['out_of_stock'] > 0 ? $t('restock_needed') : $t('in_stock_status'); ?></span></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon danger"><i class="fas fa-times-circle"></i></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -671,8 +677,7 @@ $stats['out_of_stock'] = (int)($stats['out_of_stock'] ?? 0);
             <div class="d-flex align-items-center gap-2">
                 <button type="button"
                         class="btn btn-primary"
-                        data-bs-toggle="modal"
-                        data-bs-target="#addProductModal">
+                        onclick="openProductModal()">
                     <i class="fas fa-plus me-1"></i> <?php echo $t('add_new_product'); ?>
                 </button>
                 <div class="view-toggle">
@@ -799,89 +804,10 @@ $stats['out_of_stock'] = (int)($stats['out_of_stock'] ?? 0);
         <?php endif; ?>
     </div>
 </div>
+<?php endif; ?>
 
-<!-- Bootstrap "Create New Product" Modal -->
-<div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <form method="POST" enctype="multipart/form-data">
-                <?php echo CsrfHelper::getTokenField(); ?>
-                <input type="hidden" name="action" value="create_basic_product">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addProductModalLabel">
-                        <i class="fas fa-box-open me-2"></i><?php echo $t('add_new_product'); ?>
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label"><?php echo $t('product_name'); ?> *</label>
-                            <input type="text" name="name" class="form-control" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label"><?php echo $t('regular_price'); ?> *</label>
-                            <input type="number" name="price" class="form-control" step="0.01" min="0" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label"><?php echo $t('cost_price'); ?></label>
-                            <input type="number" name="cost_price" class="form-control" step="0.01" min="0">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label"><?php echo $t('stock_quantity'); ?></label>
-                            <input type="number" name="stock_quantity" class="form-control" min="0" value="0">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label"><?php echo $t('categories_tab'); ?></label>
-                            <?php if ($categories_enabled === '1' && !empty($categories)): ?>
-                                <select name="category_id" class="form-select">
-                                    <option value=""><?php echo $t('all_categories'); ?></option>
-                                    <?php foreach ($categories as $cat): ?>
-                                        <option value="<?php echo (int)$cat['id']; ?>">
-                                            <?php echo htmlspecialchars($cat['name']); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            <?php else: ?>
-                                <div class="form-text"><?php echo $t('categories_disabled'); ?></div>
-                            <?php endif; ?>
-                        </div>
-                        <div class="col-md-6 d-flex align-items-center">
-                            <div class="form-check mt-3">
-                                <input class="form-check-input" type="checkbox" name="is_active" id="basic_is_active" checked>
-                                <label class="form-check-label" for="basic_is_active">
-                                    <?php echo $t('is_active'); ?>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label"><?php echo $t('full_description'); ?></label>
-                            <textarea name="description" class="form-control" rows="3"></textarea>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label"><?php echo $t('images'); ?> (<?php echo $t('optional'); ?>)</label>
-                            <input type="file" name="product_image" class="form-control" accept="image/*">
-                            <div class="form-text">
-                                JPG, PNG, GIF, WEBP. The selected image will be used as the primary product image.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                        <?php echo $t('cancel'); ?>
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-1"></i><?php echo $t('save'); ?>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Product Modal -->
-<div class="modal-overlay" id="productModal">
+<!-- Product Modal (Add & Edit) -->
+<div class="modal-overlay<?php echo $modal_open ? ' active' : ''; ?>" id="productModal">
     <div class="modal-container">
         <div class="modal-header">
             <h2><i class="fas fa-box"></i> <span id="modalTitle"><?php echo $t('add_new_product'); ?></span></h2>
@@ -892,6 +818,7 @@ $stats['out_of_stock'] = (int)($stats['out_of_stock'] ?? 0);
         
         <form method="POST" id="productForm" enctype="multipart/form-data">
             <?php echo CsrfHelper::getTokenField(); ?>
+            <?php if ($modal_open): ?><input type="hidden" name="from_shell_modal" value="1"><?php endif; ?>
             <div class="modal-body">
                 <input type="hidden" name="action" value="add" id="formAction">
                 <input type="hidden" name="product_id" id="productId">
@@ -1135,12 +1062,52 @@ document.addEventListener('DOMContentLoaded', function() {
             editProduct(parseInt(editProductId));
         }, 100);
     }
+    // When loaded in shell modal iframe: init modal (add or edit by product_id in URL)
+    if (isInShellModalFrame()) {
+        var m = window.location.search.match(/product_id=(\d+)/);
+        openProductModal(m ? parseInt(m[1], 10) : null);
+    }
 });
+
+// Detect if this page is loaded in the shell's full-window modal iframe (outside main content iframe)
+function isInShellModalFrame() {
+    return window.parent !== window && window.location.search.indexOf('modal=1') !== -1;
+}
+function isInMainContentFrame() {
+    return window.parent !== window && window.location.search.indexOf('modal=1') === -1;
+}
+
+// Modal scroll lock (for iframe: keep modal fixed to viewport, prevent background scroll)
+var _modalScrollY = 0;
+function _lockModalScroll() {
+    _modalScrollY = window.scrollY || document.documentElement.scrollTop;
+    document.documentElement.classList.add('modal-open');
+    document.body.classList.add('modal-open');
+    document.body.style.position = 'fixed';
+    document.body.style.top = '-' + _modalScrollY + 'px';
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.overflow = 'hidden';
+}
+function _unlockModalScroll() {
+    document.documentElement.classList.remove('modal-open');
+    document.body.classList.remove('modal-open');
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.overflow = '';
+    window.scrollTo(0, _modalScrollY);
+}
 
 // Modal functions
 function openProductModal(productId = null) {
+    if (isInMainContentFrame()) {
+        window.parent.postMessage({ type: 'open_product_modal', productId: productId != null ? productId : null }, '*');
+        return;
+    }
+    _lockModalScroll();
     document.getElementById('productModal').classList.add('active');
-    document.body.style.overflow = 'hidden';
     
     if (!productId) {
         document.getElementById('productForm').reset();
@@ -1175,11 +1142,16 @@ function openProductModal(productId = null) {
             primaryBtn.onclick = null;
         }
         
-        // Load product data via AJAX
-        fetch('?page=products', {
+        // Load product data via AJAX (use content=1 when in iframe so response is JSON, not full shell)
+        var fetchUrl = (window.parent !== window) ? (window.location.pathname + '?content=1&page=products') : '?page=products';
+        var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        var csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+        var body = 'action=get_product&product_id=' + encodeURIComponent(productId);
+        if (csrfToken) body += '&csrf_token=' + encodeURIComponent(csrfToken);
+        fetch(fetchUrl, {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: `action=get_product&product_id=${productId}`
+            body: body
         })
         .then(async (response) => {
             const text = await response.text();
@@ -1280,6 +1252,7 @@ function openProductModal(productId = null) {
         .catch(error => {
             console.error('Error:', error);
             alert(<?php echo json_encode($t('error')); ?>);
+            closeProductModal();
         });
     }
 }
@@ -1371,8 +1344,12 @@ function addVariantRow(data = {}) {
 }
 
 function closeProductModal() {
+    if (isInShellModalFrame()) {
+        window.parent.postMessage({ type: 'close_product_modal', refresh: false }, '*');
+        return;
+    }
     document.getElementById('productModal').classList.remove('active');
-    document.body.style.overflow = '';
+    _unlockModalScroll();
     document.getElementById('productForm').reset();
     productImages = [];
     renderImagePreviews();
@@ -1624,15 +1601,23 @@ function deleteProduct(id) {
 }
 
 function toggleProductStatus(id, isActive) {
+    var csrf = (document.querySelector('meta[name="csrf-token"]') || {}).getAttribute?.('content') || '';
+    var body = 'action=toggle_status&product_id=' + encodeURIComponent(id) + '&is_active=' + (isActive ? 1 : 0);
+    if (csrf) body += '&csrf_token=' + encodeURIComponent(csrf);
     fetch('?page=products', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: `action=toggle_status&product_id=${id}&is_active=${isActive ? 1 : 0}`
+        body: body
     });
 }
 
 function quickView(id) {
-    window.location.href = '?page=product_quick_view&id=' + id;
+    var isFrame = window.self !== window.top;
+    var params = new URLSearchParams(window.location.search);
+    params.set('page', 'product_quick_view');
+    params.set('id', String(id));
+    if (isFrame) params.set('content', '1');
+    window.location.href = (window.location.pathname || 'index.php') + '?' + params.toString();
 }
 
 function exportProducts() {
@@ -1713,120 +1698,6 @@ function exportProducts() {
 
 .btn-primary:hover {
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-}
-
-/* Statistics Cards Grid */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.stat-card {
-    background: var(--bg-card);
-    border-radius: 6px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    border: 1px solid var(--border-primary);
-}
-
-.stat-card:hover {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-}
-
-.stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--color-primary-db), var(--color-accent));
-    border-radius: 16px 16px 0 0;
-}
-
-.stat-card-header {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    margin-bottom: 0;
-    min-height: 0;
-    pointer-events: none;
-}
-
-.stat-card-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    color: white;
-    flex-shrink: 0;
-    position: absolute;
-    top: 1.25rem;
-    right: 1.25rem;
-}
-
-.stat-card-icon.primary {
-    background: linear-gradient(135deg, var(--color-primary-db), var(--color-primary-db-hover));
-}
-
-.stat-card-icon.success {
-    background: linear-gradient(135deg, #10b981, #059669);
-}
-
-.stat-card-icon.warning {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-}
-
-.stat-card-icon.danger {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-}
-
-.stat-card-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding-right: 4.5rem;
-}
-
-.stat-card-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1;
-}
-
-.stat-card-label {
-    color: var(--text-secondary);
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-.stat-card-change {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-.stat-card-change.positive {
-    color: #10b981;
-}
-
-.stat-card-change.negative {
-    color: #ef4444;
-}
-
-.stat-card-change i {
-    font-size: 0.75rem;
 }
 
 /* Filters Section */
@@ -2299,20 +2170,25 @@ input:checked + .slider:before {
     color: var(--text-inverse);
 }
 
-/* Modal */
+/* Modal (iframe-friendly: full viewport overlay, scroll lock, high z-index) */
 .modal-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--bg-modal);
-    backdrop-filter: blur(4px);
-    z-index: 10000;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 2147483646;
     display: none;
     align-items: center;
     justify-content: center;
-    padding: 2rem;
+    padding: 1.5rem;
+    box-sizing: border-box;
+}
+
+html.modal-open,
+body.modal-open {
+    overflow: hidden !important;
+    height: 100%;
 }
 
 .modal-overlay.active {
@@ -2321,14 +2197,14 @@ input:checked + .slider:before {
 
 .modal-container {
     background: var(--bg-card);
-    border-radius: 6px;
+    border-radius: 10px;
     width: 100%;
-    max-width: 900px;
+    max-width: 920px;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
-    box-shadow: var(--shadow-2xl);
-    animation: modalSlideIn 0.3s ease-out;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--border-primary);
+    animation: modalSlideIn 0.25s ease-out;
 }
 
 @keyframes modalSlideIn {
@@ -2913,19 +2789,6 @@ select.form-input,
         min-width: 200px;
         justify-content: center;
     }
-    
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-    }
-    
-    .stat-card {
-        padding: 1rem;
-    }
-    
-    .stat-card-value {
-        font-size: 1.75rem;
-    }
 }
 
 /* Mobile Large (576px - 767px) */
@@ -2935,53 +2798,6 @@ select.form-input,
         height: 44px;
         justify-content: center;
         font-size: 0.875rem;
-    }
-    
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.5rem;
-    }
-    
-    .stat-card {
-        padding: 0.75rem;
-        border-radius: 6px;
-        text-align: center;
-    }
-    
-    .stat-card-header {
-        margin-bottom: 0.5rem;
-        justify-content: center;
-    }
-    
-    .stat-card-icon {
-        width: 36px;
-        height: 36px;
-        font-size: 0.875rem;
-        margin: 0 auto;
-    }
-    
-    .stat-card-content {
-        align-items: center;
-        text-align: center;
-    }
-    
-    .stat-card-value {
-        font-size: 1.25rem;
-        margin-bottom: 0.25rem;
-    }
-    
-    .stat-card-label {
-        font-size: 0.75rem;
-        margin-bottom: 0.25rem;
-    }
-    
-    .stat-card-change {
-        font-size: 0.6875rem;
-        justify-content: center;
-    }
-    
-    .stat-card-change i {
-        font-size: 0.625rem;
     }
 }
 
@@ -2993,104 +2809,6 @@ select.form-input,
         justify-content: center;
         font-size: 0.8125rem;
         padding: 0 1rem;
-    }
-    
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.375rem;
-    }
-    
-    .stat-card {
-        padding: 0.5rem;
-        border-radius: 6px;
-        text-align: center;
-        min-height: 80px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-    
-    .stat-card-header {
-        margin-bottom: 0.375rem;
-        justify-content: center;
-    }
-    
-    .stat-card-icon {
-        width: 28px;
-        height: 28px;
-        font-size: 0.75rem;
-        margin: 0 auto;
-    }
-    
-    .stat-card-content {
-        align-items: center;
-        text-align: center;
-        gap: 0.125rem;
-    }
-    
-    .stat-card-value {
-        font-size: 1rem;
-        line-height: 1.1;
-        margin-bottom: 0.125rem;
-    }
-    
-    .stat-card-label {
-        font-size: 0.6875rem;
-        margin-bottom: 0.125rem;
-        line-height: 1.2;
-    }
-    
-    .stat-card-change {
-        font-size: 0.625rem;
-        justify-content: center;
-        line-height: 1.2;
-    }
-    
-    .stat-card-change i {
-        font-size: 0.5rem;
-    }
-}
-
-/* Extra Small Mobile (up to 375px) */
-@media (max-width: 375px) {
-    .stats-grid {
-        grid-template-columns: 1fr;
-        gap: 0.25rem;
-    }
-    
-    .stat-card {
-        padding: 0.5rem;
-        min-height: 60px;
-        flex-direction: row;
-        align-items: center;
-        text-align: left;
-    }
-    
-    .stat-card-header {
-        margin-bottom: 0;
-        margin-right: 0.75rem;
-        justify-content: flex-start;
-    }
-    
-    .stat-card-content {
-        align-items: flex-start;
-        text-align: left;
-        flex: 1;
-    }
-    
-    .stat-card-value {
-        font-size: 1rem;
-        margin-bottom: 0.125rem;
-    }
-    
-    .stat-card-label {
-        font-size: 0.6875rem;
-        margin-bottom: 0.125rem;
-    }
-    
-    .stat-card-change {
-        font-size: 0.625rem;
-        justify-content: flex-start;
     }
 }
 

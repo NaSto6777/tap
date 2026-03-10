@@ -278,18 +278,48 @@ try {
         <span class="meta-chip"><?php echo $periodStart; ?> &ndash; <?php echo $periodEnd; ?></span>
       </div>
     </div>
-    <div class="analytics-hero-metrics">
-      <div class="hero-metric">
-        <span class="hero-metric-label"><?php echo $t('revenue', 'Revenue'); ?></span>
-        <span class="hero-metric-value"><?php echo $currency_position === 'left' ? $currency_symbol . number_format($overviewStats['total_revenue'], 2) : number_format($overviewStats['total_revenue'], 2) . ' ' . $currency_symbol; ?></span>
+    <div class="stats-grid" style="margin-bottom: 0;">
+      <div class="stat-card">
+        <div class="stat-card-body">
+          <div class="stat-card-row">
+            <div class="stat-card-main">
+              <h5 class="stat-card-label"><?php echo $t('revenue', 'Revenue'); ?></h5>
+              <span class="stat-card-value"><?php echo $currency_position === 'left' ? $currency_symbol . number_format($overviewStats['total_revenue'], 2) : number_format($overviewStats['total_revenue'], 2) . ' ' . $currency_symbol; ?></span>
+              <p class="stat-card-footer neutral"><?php echo $t('last_days', 'Last'); ?> <?php echo $daysRange; ?> <?php echo $t('days', 'days'); ?></p>
+            </div>
+            <div class="stat-card-icon-wrap">
+              <div class="stat-card-icon primary"><i class="fas fa-dollar-sign"></i></div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="hero-metric">
-        <span class="hero-metric-label"><?php echo $t('conversion_rate', 'Conversion Rate'); ?></span>
-        <span class="hero-metric-value"><?php echo number_format($overviewStats['conversion_rate'], 2); ?>%</span>
+      <div class="stat-card">
+        <div class="stat-card-body">
+          <div class="stat-card-row">
+            <div class="stat-card-main">
+              <h5 class="stat-card-label"><?php echo $t('conversion_rate', 'Conversion Rate'); ?></h5>
+              <span class="stat-card-value"><?php echo number_format($overviewStats['conversion_rate'], 2); ?>%</span>
+              <p class="stat-card-footer neutral"><?php echo $t('visitors_to_orders', 'Visitors to orders'); ?></p>
+            </div>
+            <div class="stat-card-icon-wrap">
+              <div class="stat-card-icon success"><i class="fas fa-percent"></i></div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="hero-metric">
-        <span class="hero-metric-label"><?php echo $t('active_orders', 'Active Orders'); ?></span>
-        <span class="hero-metric-value"><?php echo number_format($overviewStats['total_orders']); ?></span>
+      <div class="stat-card">
+        <div class="stat-card-body">
+          <div class="stat-card-row">
+            <div class="stat-card-main">
+              <h5 class="stat-card-label"><?php echo $t('active_orders', 'Active Orders'); ?></h5>
+              <span class="stat-card-value"><?php echo number_format($overviewStats['total_orders']); ?></span>
+              <p class="stat-card-footer positive"><?php echo $t('orders', 'Orders'); ?></p>
+            </div>
+            <div class="stat-card-icon-wrap">
+              <div class="stat-card-icon info"><i class="fas fa-shopping-cart"></i></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>

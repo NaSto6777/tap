@@ -244,6 +244,131 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         exit;
     }
+
+    if ($action === 'delete_order') {
+        header('Content-Type: application/json');
+        $order_id = isset($_POST['order_id']) ? (int) $_POST['order_id'] : 0;
+
+        if (!$order_id) {
+            echo json_encode(['success' => false, 'message' => $t('invalid_data', 'Invalid data')]);
+            exit;
+        }
+
+        try {
+            // Ensure order belongs to this store and check lock state
+            $stmt = $conn->prepare("SELECT created_at FROM orders WHERE id = ? AND store_id = ?");
+            $stmt->execute([$order_id, $store_id]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$row) {
+                echo json_encode(['success' => false, 'message' => $t('order_not_found', 'Order not found')]);
+                exit;
+            }
+
+            $order_locked = BillingHelper::shouldLockOrder($store_id, $row['created_at']);
+            if ($order_locked) {
+                echo json_encode(['success' => false, 'message' => $t('cannot_delete_locked_order', 'This order cannot be deleted on your current plan.')]);
+                exit;
+            }
+
+            // Best-effort cleanup of related items before deleting the order itself
+            try {
+                $cleanupStmt = $conn->prepare("DELETE FROM order_items WHERE order_id = ?");
+                $cleanupStmt->execute([$order_id]);
+            } catch (Exception $cleanupEx) {
+                // Ignore cleanup failures; main delete may still succeed
+            }
+
+            $deleteOrderStmt = $conn->prepare("DELETE FROM orders WHERE id = ? AND store_id = ?");
+            $deleteOrderStmt->execute([$order_id, $store_id]);
+
+            echo json_encode(['success' => true, 'message' => $t('order_deleted_successfully', 'Order deleted successfully.')]);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => $t('error_deleting_order', 'Error deleting order')]);
+        }
+        exit;
+    }
+}
+
+// Shell modal: Update Order Status only (no orders list)
+if (!empty($order_status_modal_only) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    $modal_order_id = isset($_GET['order_id']) ? (int)$_GET['order_id'] : 0;
+    $modal_status = isset($_GET['status']) ? preg_replace('/[^a-z_]/', '', (string)$_GET['status']) : 'pending';
+    $modal_payment = isset($_GET['payment']) ? preg_replace('/[^a-z]/', '', (string)$_GET['payment']) : 'pending';
+    $allowed_status = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    $allowed_payment = ['pending', 'paid', 'failed', 'refunded'];
+    if (!in_array($modal_status, $allowed_status)) $modal_status = 'pending';
+    if (!in_array($modal_payment, $allowed_payment)) $modal_payment = 'pending';
+    ?><style>
+.shell-status-modal .modal-container { margin: 2rem auto; max-width: 420px; }
+.shell-status-modal .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary); font-size: 0.9375rem; }
+.shell-status-modal .modal-footer { display: flex; align-items: center; justify-content: flex-end; gap: 1rem; padding: 1rem 1.25rem; border-top: 1px solid var(--border-primary); }
+.shell-status-modal .modal-body { padding: 1.25rem 1.5rem; }
+.shell-status-modal .modal-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-primary); display: flex; justify-content: space-between; align-items: center; }
+.shell-status-modal .modal-header h2 { margin: 0; font-size: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+.shell-status-modal .btn-primary,
+.shell-status-modal .btn-secondary { text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; cursor: pointer; border: 1px solid transparent; }
+.shell-status-modal .btn-primary { background: var(--color-primary-db, var(--color-primary)); color: #fff; }
+.shell-status-modal .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border-color: var(--border-primary); }
+</style>
+<div class="modal-overlay active shell-status-modal" onclick="if(event.target===this) closeShellStatusModal()">
+    <div class="modal-container" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2><i class="fas fa-edit"></i> <?php echo $t('update_order_status', 'Update Order Status'); ?></h2>
+            <button type="button" class="modal-close" onclick="closeShellStatusModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="statusFormShell" onsubmit="return updateOrderStatusShell(event)">
+            <div class="modal-body">
+                <?php echo CsrfHelper::getTokenField(); ?>
+                <input type="hidden" name="action" value="update_status">
+                <input type="hidden" name="order_id" id="statusOrderIdShell" value="<?php echo (int)$modal_order_id; ?>">
+                <div class="form-group">
+                    <label><?php echo $t('order_status'); ?></label>
+                    <select name="status" id="statusSelectShell" class="form-input">
+                        <option value="pending"<?php echo $modal_status === 'pending' ? ' selected' : ''; ?>><?php echo $t('pending'); ?></option>
+                        <option value="processing"<?php echo $modal_status === 'processing' ? ' selected' : ''; ?>><?php echo $t('processing'); ?></option>
+                        <option value="shipped"<?php echo $modal_status === 'shipped' ? ' selected' : ''; ?>><?php echo $t('shipped', 'Shipped'); ?></option>
+                        <option value="delivered"<?php echo $modal_status === 'delivered' ? ' selected' : ''; ?>><?php echo $t('delivered'); ?></option>
+                        <option value="cancelled"<?php echo $modal_status === 'cancelled' ? ' selected' : ''; ?>><?php echo $t('cancelled', 'Cancelled'); ?></option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><?php echo $t('payment_status', 'Payment Status'); ?></label>
+                    <select name="payment_status" id="paymentStatusSelectShell" class="form-input">
+                        <option value="pending"<?php echo $modal_payment === 'pending' ? ' selected' : ''; ?>><?php echo $t('pending'); ?></option>
+                        <option value="paid"<?php echo $modal_payment === 'paid' ? ' selected' : ''; ?>><?php echo $t('paid', 'Paid'); ?></option>
+                        <option value="failed"<?php echo $modal_payment === 'failed' ? ' selected' : ''; ?>><?php echo $t('failed', 'Failed'); ?></option>
+                        <option value="refunded"<?php echo $modal_payment === 'refunded' ? ' selected' : ''; ?>><?php echo $t('refunded', 'Refunded'); ?></option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeShellStatusModal()"><i class="fas fa-times"></i> <?php echo $t('cancel'); ?></button>
+                <button type="submit" class="btn-primary"><i class="fas fa-save"></i> <?php echo $t('update_status', 'Update Status'); ?></button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+function closeShellStatusModal() { try { window.parent.postMessage({ type: 'close_product_modal', refresh: false }, '*'); } catch (e) {} }
+function updateOrderStatusShell(event) {
+    event.preventDefault();
+    var form = document.getElementById('statusFormShell');
+    var body = new URLSearchParams(new FormData(form));
+    fetch('index.php?page=orders', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: body })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data && data.success) {
+                try { window.parent.postMessage({ type: 'close_product_modal', refresh: true, message: data.message || '', variant: 'success' }, '*'); } catch (e) {}
+            } else {
+                alert(data && data.message ? data.message : '<?php echo $t('error'); ?>');
+            }
+        })
+        .catch(function() { alert('<?php echo $t('error'); ?>'); });
+    return false;
+}
+</script><?php
+    exit;
 }
 
 // Get filters
@@ -252,8 +377,12 @@ $status_filter = $_GET['status'] ?? '';
 $payment_filter = $_GET['payment'] ?? '';
 $sort_by = $_GET['sort'] ?? 'created_at';
 $sort_order = $_GET['order'] ?? 'DESC';
-$page = $_GET['p'] ?? 1;
-$per_page = 20;
+$page = isset($_GET['p']) ? max(1, (int)$_GET['p']) : 1;
+$allowed_limits = [10, 20, 50, 100];
+$per_page = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
+if (!in_array($per_page, $allowed_limits, true)) {
+    $per_page = 20;
+}
 $offset = ($page - 1) * $per_page;
 
 // Build query (scoped to store)
@@ -305,6 +434,85 @@ $stmt = $conn->prepare($query);
 $stmt->execute($params);
 $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Preload order items for currently visible orders to build compact product previews
+$orderItemsByOrder = [];
+$productImageMap   = [];
+if (!empty($orders)) {
+    $orderIds = array_column($orders, 'id');
+    $placeholders = implode(',', array_fill(0, count($orderIds), '?'));
+
+    try {
+        // Prefer using product_image when available on the schema
+        $itemsQuery = "SELECT order_id, product_id, product_name, product_sku, quantity, price, total, product_image
+                       FROM order_items
+                       WHERE order_id IN ($placeholders)
+                       ORDER BY id";
+        $itemsStmt = $conn->prepare($itemsQuery);
+        $itemsStmt->execute($orderIds);
+    } catch (Exception $e) {
+        // Graceful fallback for older schemas without product_image
+        $itemsQuery = "SELECT order_id, product_id, product_name, product_sku, quantity, price, total
+                       FROM order_items
+                       WHERE order_id IN ($placeholders)
+                       ORDER BY id";
+        $itemsStmt = $conn->prepare($itemsQuery);
+        $itemsStmt->execute($orderIds);
+    }
+
+    $productIdsForImages = [];
+
+    while ($row = $itemsStmt->fetch(PDO::FETCH_ASSOC)) {
+        $oid = (int)($row['order_id'] ?? 0);
+        if (!$oid) {
+            continue;
+        }
+        if (!isset($orderItemsByOrder[$oid])) {
+        $orderItemsByOrder[$oid] = [];
+        }
+        $orderItemsByOrder[$oid][] = $row;
+
+        $pid = isset($row['product_id']) ? (int)$row['product_id'] : 0;
+        if ($pid > 0) {
+            $productIdsForImages[$pid] = true;
+        }
+    }
+
+    // Resolve product images via products/product_images when possible
+    $productIds = array_keys($productIdsForImages);
+    if (!empty($productIds)) {
+        $pPlaceholders = implode(',', array_fill(0, count($productIds), '?'));
+        try {
+            $imgQuery = "SELECT p.id, COALESCE(pi.image_path, '') AS main_image
+                         FROM products p
+                         LEFT JOIN product_images pi 
+                            ON p.id = pi.product_id 
+                           AND pi.is_primary = 1
+                         WHERE p.id IN ($pPlaceholders) AND p.store_id = ?";
+            $imgStmt = $conn->prepare($imgQuery);
+            $imgStmt->execute(array_merge($productIds, [$store_id]));
+            while ($imgRow = $imgStmt->fetch(PDO::FETCH_ASSOC)) {
+                $pid = (int)$imgRow['id'];
+                if ($pid > 0 && !empty($imgRow['main_image'])) {
+                    $productImageMap[$pid] = $imgRow['main_image'];
+                }
+            }
+        } catch (Exception $e) {
+            // If anything fails, we silently ignore and keep placeholders
+        }
+
+        // Fallback: assume default main image path when none was found via product_images
+        foreach ($productIds as $pid) {
+            $pid = (int)$pid;
+            if ($pid <= 0) {
+                continue;
+            }
+            if (!isset($productImageMap[$pid])) {
+                $productImageMap[$pid] = "uploads/products/{$pid}/main.jpg";
+            }
+        }
+    }
+}
+
 // Get statistics (restricted by plan order visibility when applicable)
 $stats_visibility = PlanHelper::orderVisibilityCondition($conn, $store_id, 'orders');
 $stats_where = "store_id = ?" . ($stats_visibility['sql'] !== '' ? trim($stats_visibility['sql']) : '');
@@ -347,135 +555,99 @@ BillingHelper::init($conn);
 <!-- Modern Orders Management Interface -->
 <div class="orders-management-container">
     
-    <!-- Statistics Cards -->
+    <!-- Statistics Cards (Argon-style) -->
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon primary">
-                    <i class="fas fa-shopping-cart"></i>
-                </div>
-            </div>
-            <div class="stat-card-content">
-                <div class="stat-card-value"><?php echo (int)($stats['total'] ?? 0); ?></div>
-                <div class="stat-card-label"><?php echo $t('total_orders', 'Total Orders'); ?></div>
-                <div class="stat-card-change positive">
-                    <i class="fas fa-arrow-up"></i>
-                    <span><?php echo $t('all_orders', 'All Orders'); ?></span>
-                </div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon warning">
-                    <i class="fas fa-clock"></i>
-                </div>
-            </div>
-            <div class="stat-card-content">
-                <div class="stat-card-value"><?php echo (int)($stats['pending'] ?? 0); ?></div>
-                <div class="stat-card-label"><?php echo $t('pending_orders', 'Pending Orders'); ?></div>
-                <div class="stat-card-change <?php echo $stats['pending'] > 0 ? 'negative' : 'positive'; ?>">
-                    <i class="fas fa-<?php echo $stats['pending'] > 0 ? 'exclamation' : 'check'; ?>"></i>
-                    <span><?php echo $stats['pending'] > 0 ? $t('needs_attention', 'Needs Attention') : $t('all_processed', 'All Processed'); ?></span>
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('total_orders', 'Total Orders'); ?></h5>
+                        <span class="stat-card-value"><?php echo (int)($stats['total'] ?? 0); ?></span>
+                        <p class="stat-card-footer positive"><i class="fas fa-arrow-up"></i> <span><?php echo $t('all_orders', 'All Orders'); ?></span></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon primary"><i class="fas fa-shopping-cart"></i></div>
+                    </div>
                 </div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon info">
-                    <i class="fas fa-cog"></i>
-                </div>
-            </div>
-            <div class="stat-card-content">
-                <div class="stat-card-value"><?php echo (int)($stats['processing'] ?? 0); ?></div>
-                <div class="stat-card-label"><?php echo $t('processing'); ?></div>
-                <div class="stat-card-change positive">
-                    <i class="fas fa-arrow-up"></i>
-                    <span><?php echo $t('in_progress', 'In Progress'); ?></span>
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('pending_orders', 'Pending Orders'); ?></h5>
+                        <span class="stat-card-value"><?php echo (int)($stats['pending'] ?? 0); ?></span>
+                        <p class="stat-card-footer <?php echo $stats['pending'] > 0 ? 'negative' : 'positive'; ?>"><i class="fas fa-<?php echo $stats['pending'] > 0 ? 'exclamation' : 'check'; ?>"></i> <span><?php echo $stats['pending'] > 0 ? $t('needs_attention', 'Needs Attention') : $t('all_processed', 'All Processed'); ?></span></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon warning"><i class="fas fa-clock"></i></div>
+                    </div>
                 </div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon success">
-                    <i class="fas fa-check-circle"></i>
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('processing'); ?></h5>
+                        <span class="stat-card-value"><?php echo (int)($stats['processing'] ?? 0); ?></span>
+                        <p class="stat-card-footer positive"><i class="fas fa-arrow-up"></i> <span><?php echo $t('in_progress', 'In Progress'); ?></span></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon info"><i class="fas fa-cog"></i></div>
+                    </div>
                 </div>
             </div>
-            <div class="stat-card-content">
-                <div class="stat-card-value"><?php echo (int)($stats['delivered'] ?? 0); ?></div>
-                <div class="stat-card-label"><?php echo $t('delivered'); ?></div>
-                <div class="stat-card-change positive">
-                    <i class="fas fa-check"></i>
-                    <span><?php echo $stats['total'] > 0 ? round(($stats['delivered'] / $stats['total']) * 100, 1) : 0; ?>% <?php echo $t('complete', 'Complete'); ?></span>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-body">
+                <div class="stat-card-row">
+                    <div class="stat-card-main">
+                        <h5 class="stat-card-label"><?php echo $t('delivered'); ?></h5>
+                        <span class="stat-card-value"><?php echo (int)($stats['delivered'] ?? 0); ?></span>
+                        <p class="stat-card-footer positive"><i class="fas fa-check"></i> <span><?php echo $stats['total'] > 0 ? round(($stats['delivered'] / $stats['total']) * 100, 1) : 0; ?>% <?php echo $t('complete', 'Complete'); ?></span></p>
+                    </div>
+                    <div class="stat-card-icon-wrap">
+                        <div class="stat-card-icon success"><i class="fas fa-check-circle"></i></div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Filters and Search Bar -->
-    <div class="filters-section">
-        <form method="GET" class="filters-form">
-            <input type="hidden" name="page" value="orders">
-            
-            <div class="search-box">
-                <i class="fas fa-search"></i>
-                <input type="text" name="search" placeholder="<?php echo $t('search_orders_placeholder', 'Search orders...'); ?>" 
-                       value="<?php echo htmlspecialchars($search); ?>">
-            </div>
-            
-            <div class="filter-group">
-                <select name="status" class="filter-select" onchange="this.form.submit()">
-                    <option value=""><?php echo $t('all_status'); ?></option>
-                    <option value="pending" <?php echo $status_filter === 'pending' ? 'selected' : ''; ?>><?php echo $t('pending'); ?></option>
-                    <option value="processing" <?php echo $status_filter === 'processing' ? 'selected' : ''; ?>><?php echo $t('processing'); ?></option>
-                    <option value="shipped" <?php echo $status_filter === 'shipped' ? 'selected' : ''; ?>><?php echo $t('shipped', 'Shipped'); ?></option>
-                    <option value="delivered" <?php echo $status_filter === 'delivered' ? 'selected' : ''; ?>><?php echo $t('delivered'); ?></option>
-                    <option value="cancelled" <?php echo $status_filter === 'cancelled' ? 'selected' : ''; ?>><?php echo $t('cancelled', 'Cancelled'); ?></option>
-                </select>
-            </div>
-            
-            <div class="filter-group">
-                <select name="payment" class="filter-select" onchange="this.form.submit()">
-                    <option value=""><?php echo $t('all_payment', 'All Payment'); ?></option>
-                    <option value="pending" <?php echo $payment_filter === 'pending' ? 'selected' : ''; ?>><?php echo $t('pending'); ?></option>
-                    <option value="paid" <?php echo $payment_filter === 'paid' ? 'selected' : ''; ?>><?php echo $t('paid', 'Paid'); ?></option>
-                    <option value="failed" <?php echo $payment_filter === 'failed' ? 'selected' : ''; ?>><?php echo $t('failed', 'Failed'); ?></option>
-                    <option value="refunded" <?php echo $payment_filter === 'refunded' ? 'selected' : ''; ?>><?php echo $t('refunded', 'Refunded'); ?></option>
-                </select>
-            </div>
-            
-            <div class="filter-group">
-                <select name="sort" class="filter-select" onchange="this.form.submit()">
-                    <option value="created_at" <?php echo $sort_by === 'created_at' ? 'selected' : ''; ?>><?php echo $t('newest_first'); ?></option>
-                    <option value="order_number" <?php echo $sort_by === 'order_number' ? 'selected' : ''; ?>><?php echo $t('order_number'); ?></option>
-                    <option value="total_amount" <?php echo $sort_by === 'total_amount' ? 'selected' : ''; ?>><?php echo $t('amount', 'Amount'); ?></option>
-                    <option value="customer_name" <?php echo $sort_by === 'customer_name' ? 'selected' : ''; ?>><?php echo $t('customer', 'Customer'); ?></option>
-            </select>
-    </div>
-            
-            <button type="submit" class="btn-filter">
-                <i class="fas fa-filter"></i>
-                <?php echo $t('apply'); ?>
-            </button>
-            
-            <button class="btn-clear" id="clearFiltersBtn" style="display:none;" onclick="clearAllFilters()">
-                <i class="fas fa-times"></i> <?php echo $t('clear_all_filters', 'Clear All Filters'); ?>
-            </button>
-            
-            <?php if ($search || $status_filter || $payment_filter): ?>
-                <a href="?page=orders" class="btn-clear">
-                    <i class="fas fa-times"></i>
-                    <?php echo $t('clear_server_filters', 'Clear Server Filters'); ?>
-                </a>
-            <?php endif; ?>
-        </form>
-    </div>
-
+    
     <!-- Orders Container -->
     <div class="orders-container">
+        <div class="orders-indexbar">
+            <div class="orders-indexbar-left">
+                <div class="orders-search">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                    <input type="text"
+                           id="ordersSearchInput"
+                           placeholder="<?php echo $t('search_orders_placeholder', 'Search orders...'); ?>"
+                           autocomplete="off">
+                    <button type="button"
+                            class="orders-search-clear"
+                            id="ordersSearchClear"
+                            onclick="clearOrdersSearch()"
+                            aria-label="<?php echo $t('clear_search', 'Clear search'); ?>"
+                            style="display:none;">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="orders-indexbar-right">
+                <button type="button" class="indexbar-icon-btn" aria-label="<?php echo $t('filters', 'Filters'); ?>" title="<?php echo $t('filters', 'Filters'); ?>">
+                    <i class="fas fa-filter" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="indexbar-icon-btn" aria-label="<?php echo $t('sort', 'Sort'); ?>" title="<?php echo $t('sort', 'Sort'); ?>">
+                    <i class="fas fa-sort" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
         <div class="orders-header">
             <div class="results-info">
-                <label class="select-all-checkbox">
-                    <input type="checkbox" id="selectAllOrders" onchange="toggleSelectAll()" aria-label="<?php echo $t('select_all_orders', 'Select all orders'); ?>">
+                <label class="select-all-checkbox select-all-mobile">
+                    <input type="checkbox" id="selectAllOrdersMobile" class="select-all-orders-checkbox" onchange="toggleSelectAll(this)" aria-label="<?php echo $t('select_all_orders', 'Select all orders'); ?>">
                     <span class="checkbox-label"><?php echo $t('select_all'); ?></span>
                 </label>
                 <span class="results-text">
@@ -484,6 +656,391 @@ BillingHelper::init($conn);
             </div>
         </div>
 
+        <div class="orders-table-wrapper">
+            <div class="orders-loading-panel" id="ordersLoadingPanel" role="status" aria-live="polite">
+                <span class="orders-spinner" aria-hidden="true"></span>
+                <span class="orders-loading-text"><?php echo $t('loading_orders', 'Loading orders…'); ?></span>
+            </div>
+            <table class="orders-table">
+                <thead>
+                    <tr>
+                        <th class="orders-table-checkbox-head">
+                            <input type="checkbox"
+                                   id="selectAllOrdersTable"
+                                   class="select-all-orders-checkbox"
+                                   onchange="toggleSelectAll(this)"
+                                   aria-label="<?php echo $t('select_all_orders', 'Select all orders'); ?>">
+                        </th>
+                        <th class="orders-table-heading-order">
+                            <span class="table-heading-label"><?php echo $t('id', 'ID'); ?></span>
+                            <span class="table-heading-selected"><span id="tableSelectedCount">0</span> <?php echo $t('selected', 'selected'); ?></span>
+                        </th>
+                        <th><span class="table-heading-label"><?php echo $t('products', 'Products'); ?></span></th>
+                        <th><span class="table-heading-label"><?php echo $t('customer', 'Customer'); ?></span></th>
+                        <th><span class="table-heading-label"><?php echo $t('date', 'Date'); ?></span></th>
+                        <?php if ($hasPaymentStatus): ?>
+                        <th><span class="table-heading-label"><?php echo $t('payment', 'Payment'); ?></span></th>
+                        <?php endif; ?>
+                        <th><span class="table-heading-label"><?php echo $t('status', 'Status'); ?></span></th>
+                        <?php if ($hasCourierTracking && ($pluginHelper->isPluginActive('firstdelivery') || $pluginHelper->isPluginActive('colissimo'))): ?>
+                        <th><span class="table-heading-label"><?php echo $t('shipping', 'Shipping'); ?></span></th>
+                        <?php endif; ?>
+                        <th><span class="table-heading-label"><?php echo $t('total_amount', 'Total'); ?></span></th>
+                        <th><span class="table-heading-label"><?php echo $t('actions', 'Actions'); ?></span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php 
+                    $rowIndex = $offset + 1;
+                    foreach ($orders as $order):
+                        $order_locked = BillingHelper::shouldLockOrder($store_id, $order['created_at']);
+                        $LOCKED = '*** LOCKED ***';
+                    ?>
+                    <tr class="order-row" data-order-id="<?php echo $order['id']; ?>">
+                        <td>
+                            <?php if (!$order_locked): ?>
+                            <input type="checkbox" 
+                                   class="order-checkbox" 
+                                   id="order-checkbox-table-<?php echo $order['id']; ?>" 
+                                   data-order-id="<?php echo $order['id']; ?>"
+                                   onchange="toggleOrderSelection(this)"
+                                   aria-label="Select order <?php echo htmlspecialchars($order['order_number']); ?>">
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <div class="table-order-id"><?php echo $rowIndex++; ?></div>
+                        </td>
+                        <td>
+                            <?php
+                                $items = $orderItemsByOrder[$order['id']] ?? [];
+                                $visibleItems = array_slice($items, 0, 4);
+                                $extraCount = max(0, count($items) - count($visibleItems));
+                            ?>
+                            <div class="table-products-cell">
+                                <div class="products-avatars">
+                                    <?php foreach ($visibleItems as $item): 
+                                        $name = $item['product_name'] ?? '';
+                                        $qty  = (int)($item['quantity'] ?? 0);
+                                        $img  = $item['product_image'] ?? null;
+                                        $pidForThumb = isset($item['product_id']) ? (int)$item['product_id'] : 0;
+                                        if ((empty($img) || $img === '0') && $pidForThumb > 0 && isset($productImageMap[$pidForThumb])) {
+                                            $img = $productImageMap[$pidForThumb];
+                                        }
+                                        // Normalize image path for admin (prefix ../ for site-relative paths)
+                                        $imgSrc = null;
+                                        if (!empty($img) && $img !== '0') {
+                                            if (preg_match('~^https?://~i', $img)) {
+                                                $imgSrc = $img;
+                                            } else {
+                                                $imgSrc = '../' . ltrim($img, '/');
+                                            }
+                                        }
+                                        $initial = $name !== '' ? strtoupper(substr($name, 0, 1)) : '?';
+                                    ?>
+                                    <div 
+                                        class="product-avatar" 
+                                        title="<?php echo htmlspecialchars($name); ?>"
+                                        data-order-id="<?php echo (int)$order['id']; ?>"
+                                        data-product-id="<?php echo $pidForThumb; ?>"
+                                        data-raw-img="<?php echo htmlspecialchars($item['product_image'] ?? ''); ?>"
+                                        data-map-img="<?php echo htmlspecialchars($pidForThumb > 0 && isset($productImageMap[$pidForThumb]) ? $productImageMap[$pidForThumb] : ''); ?>"
+                                        data-final-img="<?php echo htmlspecialchars($imgSrc ?? ''); ?>"
+                                    >
+                                        <div class="product-avatar-inner">
+                                            <?php if (!empty($imgSrc)): ?>
+                                                <img 
+                                                    src="<?php echo htmlspecialchars($imgSrc); ?>" 
+                                                    alt="<?php echo htmlspecialchars($name); ?>"
+                                                    onerror="console.log('orders thumb img error', this.src);"
+                                                >
+                                            <?php else: ?>
+                                                <span><?php echo htmlspecialchars($initial); ?></span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <span class="product-qty">x<?php echo $qty; ?></span>
+                                    </div>
+                                    <?php endforeach; ?>
+                                    <?php if ($extraCount > 0): ?>
+                                        <div class="product-avatar more" title="<?php echo $extraCount; ?> <?php echo $t('more_items', 'more items'); ?>">
+                                            <span>+<?php echo $extraCount; ?></span>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                                <?php if (!empty($items)): ?>
+                                <div class="products-tooltip">
+                                    <?php foreach ($items as $item): 
+                                        $pName = $item['product_name'] ?? '';
+                                        $pSku  = $item['product_sku'] ?? '';
+                                        $pQty  = (int)($item['quantity'] ?? 0);
+                                        $pPrice = isset($item['price']) ? (float)$item['price'] : null;
+                                        $pTotal = isset($item['total']) ? (float)$item['total'] : null;
+                                        $pImg  = $item['product_image'] ?? null;
+                                        $pId   = isset($item['product_id']) ? (int)$item['product_id'] : 0;
+                                        if ((empty($pImg) || $pImg === '0') && $pId > 0 && isset($productImageMap[$pId])) {
+                                            $pImg = $productImageMap[$pId];
+                                        }
+                                        $pImgSrc = null;
+                                        if (!empty($pImg) && $pImg !== '0') {
+                                            if (preg_match('~^https?://~i', $pImg)) {
+                                                $pImgSrc = $pImg;
+                                            } else {
+                                                $pImgSrc = '../' . ltrim($pImg, '/');
+                                            }
+                                        }
+                                    ?>
+                                    <a 
+                                        class="product-tooltip-card" 
+                                        <?php if ($pId): ?>
+                                            href="?page=product_quick_view&id=<?php echo $pId; ?>"
+                                        <?php else: ?>
+                                            href="javascript:void(0)"
+                                        <?php endif; ?>
+                                        data-order-id="<?php echo (int)$order['id']; ?>"
+                                        data-product-id="<?php echo $pId; ?>"
+                                        data-raw-img="<?php echo htmlspecialchars($item['product_image'] ?? ''); ?>"
+                                        data-map-img="<?php echo htmlspecialchars($pId > 0 && isset($productImageMap[$pId]) ? $productImageMap[$pId] : ''); ?>"
+                                        data-final-img="<?php echo htmlspecialchars($pImgSrc ?? ''); ?>"
+                                        >
+                                        <div class="product-tooltip-media">
+                                            <?php if (!empty($pImgSrc)): ?>
+                                                <img 
+                                                    src="<?php echo htmlspecialchars($pImgSrc); ?>" 
+                                                    alt="<?php echo htmlspecialchars($pName); ?>"
+                                                    onerror="console.log('orders tooltip img error', this.src);"
+                                                >
+                                            <?php else: ?>
+                                                <div class="product-tooltip-placeholder">
+                                                    <?php echo htmlspecialchars(mb_substr($pName !== '' ? $pName : '?', 0, 1)); ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="product-tooltip-body">
+                                            <div class="product-tooltip-header">
+                                                <div class="product-tooltip-title"><?php echo htmlspecialchars($pName); ?></div>
+                                                <div class="product-tooltip-qty">
+                                                    <?php echo $t('quantity', 'Quantity'); ?>: <?php echo $pQty; ?>
+                                                </div>
+                                            </div>
+                                            <?php if ($pPrice !== null): ?>
+                                            <div class="product-tooltip-meta">
+                                                <span class="product-tooltip-price">
+                                                    <?php echo $currency_position === 'left'
+                                                        ? $currency_symbol . number_format($pPrice, 2)
+                                                        : number_format($pPrice, 2) . ' ' . $currency_symbol; ?>
+                                                </span>
+                                            </div>
+                                            <?php endif; ?>
+                                            <?php if ($pTotal !== null): ?>
+                                            <div class="product-tooltip-footer">
+                                                <span class="label"><?php echo $t('total', 'Total'); ?></span>
+                                                <span class="value">
+                                                    <?php echo $currency_position === 'left'
+                                                        ? $currency_symbol . number_format($pTotal, 2)
+                                                        : number_format($pTotal, 2) . ' ' . $currency_symbol; ?>
+                                                </span>
+                                            </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </a>
+                                    <?php endforeach; ?>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="table-customer-cell">
+                                <div class="table-customer-name">
+                                    <?php echo $order_locked ? $LOCKED : htmlspecialchars($order['customer_name']); ?>
+                                </div>
+                                <?php if (!$order_locked): ?>
+                                <div class="customer-hover-card" data-customer-name="<?php echo htmlspecialchars($order['customer_name']); ?>">
+                                    <div class="customer-hover-row">
+                                        <?php echo htmlspecialchars($order['customer_email']); ?>
+                                    </div>
+                                    <?php if (!empty($order['customer_phone'])): ?>
+                                    <div class="customer-hover-row">
+                                        <?php echo htmlspecialchars($order['customer_phone']); ?>
+                                    </div>
+                                    <?php endif; ?>
+                                    <?php if (!empty($order['shipping_address'])): ?>
+                                    <div class="customer-hover-row">
+                                        <?php echo nl2br(htmlspecialchars($order['shipping_address'])); ?>
+                                    </div>
+                                    <?php elseif (!empty($order['billing_address'])): ?>
+                                    <div class="customer-hover-row">
+                                        <?php echo nl2br(htmlspecialchars($order['billing_address'])); ?>
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="table-order-date">
+                                <?php echo date('M j, Y g:i A', strtotime($order['created_at'])); ?>
+                            </div>
+                        </td>
+                        <?php if ($hasPaymentStatus): ?>
+                        <td>
+                            <?php 
+                                $payment_translations = [
+                                    'pending' => $t('pending'),
+                                    'paid' => $t('paid', 'Paid'),
+                                    'failed' => $t('failed', 'Failed'),
+                                    'refunded' => $t('refunded', 'Refunded')
+                                ];
+                                $payment_label = $order['payment_status'] ?? 'pending';
+                            ?>
+                            <div class="status-history-cell">
+                                <span class="payment-badge payment-<?php echo htmlspecialchars($payment_label); ?>">
+                                    <?php echo $payment_translations[$payment_label] ?? ucfirst($payment_label); ?>
+                                </span>
+                                <div class="status-history-tooltip">
+                                    <div class="history-title"><?php echo $t('payment', 'Payment'); ?></div>
+                                    <div class="history-row">
+                                        <span class="history-label"><?php echo $t('current_status', 'Current status'); ?></span>
+                                        <span class="history-value">
+                                            <?php echo $payment_translations[$payment_label] ?? ucfirst($payment_label); ?>
+                                        </span>
+                                    </div>
+                                    <div class="history-row">
+                                        <span class="history-label"><?php echo $t('last_updated', 'Last updated'); ?></span>
+                                        <span class="history-value">
+                                            <?php 
+                                                $updated = !empty($order['updated_at']) ? $order['updated_at'] : $order['created_at'];
+                                                echo date('M j, Y g:i A', strtotime($updated));
+                                            ?>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <?php endif; ?>
+                        <td>
+                            <?php 
+                                $status_translations = [
+                                    'pending' => $t('pending'),
+                                    'processing' => $t('processing'),
+                                    'shipped' => $t('shipped', 'Shipped'),
+                                    'delivered' => $t('delivered'),
+                                    'cancelled' => $t('cancelled', 'Cancelled')
+                                ];
+                                $status_label = $order['status'];
+                            ?>
+                            <div class="status-history-cell">
+                                <span class="status-badge status-<?php echo $status_label; ?>">
+                                    <?php echo $status_translations[$status_label] ?? ucfirst($status_label); ?>
+                                </span>
+                                <div class="status-history-tooltip">
+                                    <div class="history-title"><?php echo $t('status', 'Status'); ?></div>
+                                    <div class="history-row">
+                                        <span class="history-label"><?php echo $t('current_status', 'Current status'); ?></span>
+                                        <span class="history-value">
+                                            <?php echo $status_translations[$status_label] ?? ucfirst($status_label); ?>
+                                        </span>
+                                    </div>
+                                    <div class="history-row">
+                                        <span class="history-label"><?php echo $t('created_at', 'Created at'); ?></span>
+                                        <span class="history-value">
+                                            <?php echo date('M j, Y g:i A', strtotime($order['created_at'])); ?>
+                                        </span>
+                                    </div>
+                                    <?php if (!empty($order['updated_at']) && $order['updated_at'] !== $order['created_at']): ?>
+                                    <div class="history-row">
+                                        <span class="history-label"><?php echo $t('last_updated', 'Last updated'); ?></span>
+                                        <span class="history-value">
+                                            <?php echo date('M j, Y g:i A', strtotime($order['updated_at'])); ?>
+                                        </span>
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </td>
+                        <?php if ($hasCourierTracking && ($pluginHelper->isPluginActive('firstdelivery') || $pluginHelper->isPluginActive('colissimo'))): ?>
+                        <td>
+                            <?php
+                                $tracking = $order['courier_tracking_number'] ?? '';
+                                $code     = $order['courier_status_code'] ?? null;
+                                $courier  = $order['courier_name'] ?? '';
+                                $rawText  = $order['courier_status_text'] ?? null;
+                            ?>
+                            <?php if (empty($tracking)): ?>
+                                <?php if ($pluginHelper->isPluginActive('firstdelivery')): ?>
+                                    <button type="button"
+                                            class="btn-action secondary"
+                                            onclick="shipWithFirstDelivery(<?php echo (int) $order['id']; ?>)">
+                                        <i class="fas fa-truck"></i>
+                                        <?php echo $t('ship_with_first_delivery', 'Ship with First Delivery'); ?>
+                                    </button>
+                                <?php endif; ?>
+                                <?php if ($pluginHelper->isPluginActive('colissimo')): ?>
+                                    <button type="button"
+                                            class="btn-action secondary"
+                                            onclick="shipWithColissimo(<?php echo (int) $order['id']; ?>)">
+                                        <i class="fas fa-truck-loading"></i>
+                                        Ship with Colissimo
+                                    </button>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <?php
+                                    $sourceCode = $rawText !== null ? $rawText : ($code ?? '');
+                                    $map = ShippingHelper::mapStatus($courier ?: 'first_delivery', $sourceCode);
+                                    $badgeClass = ShippingHelper::getBadgeClass($map['internal']);
+                                ?>
+                                <div class="shipping-info">
+                                    <div>
+                                        <small class="text-muted"><?php echo $t('tracking_number', 'Tracking Number'); ?></small><br>
+                                        <strong><?php echo htmlspecialchars($tracking); ?></strong>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted"><?php echo $t('shipping_status', 'Shipping Status'); ?></small><br>
+                                        <span class="shipping-badge <?php echo $badgeClass; ?>">
+                                            <?php echo htmlspecialchars($map['label']); ?>
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <?php if ($courier === 'first_delivery' || $courier === '' || $courier === null): ?>
+                                            <button type="button"
+                                                    class="btn-action secondary"
+                                                    onclick="refreshFirstDeliveryStatus(<?php echo (int) $order['id']; ?>)">
+                                                <i class="fas fa-sync-alt"></i>
+                                                <?php echo $t('refresh_shipping_status', 'Refresh Status'); ?>
+                                            </button>
+                                        <?php elseif ($courier === 'colissimo'): ?>
+                                            <button type="button"
+                                                    class="btn-action secondary"
+                                                    onclick="refreshColissimoStatus(<?php echo (int) $order['id']; ?>)">
+                                                <i class="fas fa-sync-alt"></i>
+                                                <?php echo $t('refresh_shipping_status', 'Refresh Status'); ?>
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                        </td>
+                        <?php endif; ?>
+                        <td class="amount-cell total-column">
+                            <?php echo $order_locked ? $LOCKED : ($currency_position === 'left' ? $currency_symbol . number_format($order['total_amount'], 2) : number_format($order['total_amount'], 2) . ' ' . $currency_symbol); ?>
+                        </td>
+                        <td>
+                            <div class="table-actions icons-only">
+                                <button class="icon-action-btn" onclick="viewOrder(<?php echo $order['id']; ?>)" title="<?php echo $t('view_details', 'View Details'); ?>" aria-label="<?php echo $t('view_details', 'View Details'); ?>">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="icon-action-btn" onclick="editOrderStatus(<?php echo $order['id']; ?>, '<?php echo $order['status']; ?>', '<?php echo $hasPaymentStatus ? $order['payment_status'] : 'pending'; ?>')" title="<?php echo $t('update_status', 'Update Status'); ?>" aria-label="<?php echo $t('update_status', 'Update Status'); ?>">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="icon-action-btn danger" onclick="deleteOrder(<?php echo $order['id']; ?>)" title="<?php echo $t('delete_order', 'Delete Order'); ?>" aria-label="<?php echo $t('delete_order', 'Delete Order'); ?>">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        
         <div class="orders-list">
                     <?php foreach ($orders as $order):
                         $order_locked = BillingHelper::shouldLockOrder($store_id, $order['created_at']);
@@ -498,9 +1055,9 @@ BillingHelper::init($conn);
                     <div class="order-checkbox-wrapper">
                         <input type="checkbox" 
                                class="order-checkbox" 
-                               id="order-checkbox-<?php echo $order['id']; ?>" 
+                               id="order-checkbox-card-<?php echo $order['id']; ?>" 
                                data-order-id="<?php echo $order['id']; ?>"
-                               onchange="toggleOrderSelection(<?php echo $order['id']; ?>)"
+                               onchange="toggleOrderSelection(this)"
                                aria-label="Select order <?php echo htmlspecialchars($order['order_number']); ?>">
                     </div>
                     <div class="order-header">
@@ -552,14 +1109,14 @@ BillingHelper::init($conn);
                                 <i class="fas fa-user"></i>
                             </div>
                             <div class="customer-details">
-                                <div class="customer-name <?php echo $order_locked ? '' : 'clickable-filter'; ?>" <?php if (!$order_locked): ?>onclick="filterByCustomer('<?php echo htmlspecialchars($order['customer_name']); ?>')" title="<?php echo $t('click_to_filter', 'Click to filter by this customer'); ?>"<?php endif; ?>>
+                                <div class="customer-name">
                                     <?php echo $order_locked ? $LOCKED : htmlspecialchars($order['customer_name']); ?>
                                 </div>
-                                <div class="customer-email <?php echo $order_locked ? '' : 'clickable-filter'; ?>" <?php if (!$order_locked): ?>onclick="filterByCustomer('<?php echo htmlspecialchars($order['customer_email']); ?>')" title="<?php echo $t('click_to_filter', 'Click to filter by this email'); ?>"<?php endif; ?>>
+                                <div class="customer-email">
                                     <?php echo $order_locked ? $LOCKED : htmlspecialchars($order['customer_email']); ?>
                                 </div>
                                 <?php if (!empty($order['customer_phone']) || $order_locked): ?>
-                                    <div class="customer-phone <?php echo $order_locked ? '' : 'clickable-filter'; ?>" <?php if (!$order_locked && !empty($order['customer_phone'])): ?>onclick="filterByCustomer('<?php echo htmlspecialchars($order['customer_phone']); ?>')" title="<?php echo $t('click_to_filter', 'Click to filter'); ?>"<?php endif; ?>>
+                                    <div class="customer-phone">
                                         <?php echo $order_locked ? $LOCKED : htmlspecialchars($order['customer_phone'] ?? ''); ?>
                                     </div>
                                 <?php endif; ?>
@@ -676,34 +1233,45 @@ BillingHelper::init($conn);
                     <p><?php echo $t('no_orders_match_filters', 'No orders match your current filters'); ?></p>
                 </div>
             <?php endif; ?>
-        </div>
         
-        <!-- Pagination -->
-        <?php if ($total_pages > 1): ?>
+            <!-- Pagination -->
             <div class="pagination">
+                <div class="pagination-rows">
+                    <span class="rows-label"><?php echo $t('rows_per_page', 'Rows per page'); ?>:</span>
+                    <select id="ordersPerPage" class="rows-select" onchange="changeOrdersPerPage(this.value)">
+                        <?php foreach ($allowed_limits as $limitOption): ?>
+                            <option value="<?php echo $limitOption; ?>" <?php echo $limitOption === $per_page ? 'selected' : ''; ?>>
+                                <?php echo $limitOption; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="pagination-pages">
+                    <?php if ($total_pages > 1): ?>
                     <?php if ($page > 1): ?>
-                    <a href="?page=orders&p=<?php echo $page-1; ?>&search=<?php echo urlencode($search); ?>&status=<?php echo $status_filter; ?>&payment=<?php echo $payment_filter; ?>" 
-                       class="page-btn">
-                        <i class="fas fa-chevron-left"></i>
-                    </a>
+                        <a href="?page=orders&p=<?php echo $page-1; ?>&search=<?php echo urlencode($search); ?>&status=<?php echo $status_filter; ?>&payment=<?php echo $payment_filter; ?>&limit=<?php echo $per_page; ?>" 
+                           class="page-btn" aria-label="<?php echo $t('previous_page', 'Previous page'); ?>">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
                     <?php endif; ?>
                     
                     <?php for ($i = max(1, $page - 2); $i <= min($total_pages, $page + 2); $i++): ?>
-                    <a href="?page=orders&p=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&status=<?php echo $status_filter; ?>&payment=<?php echo $payment_filter; ?>" 
-                       class="page-btn <?php echo $i == $page ? 'active' : ''; ?>">
-                        <?php echo $i; ?>
-                    </a>
+                        <a href="?page=orders&p=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&status=<?php echo $status_filter; ?>&payment=<?php echo $payment_filter; ?>&limit=<?php echo $per_page; ?>" 
+                           class="page-btn <?php echo $i == $page ? 'active' : ''; ?>">
+                            <?php echo $i; ?>
+                        </a>
                     <?php endfor; ?>
                     
                     <?php if ($page < $total_pages): ?>
-                    <a href="?page=orders&p=<?php echo $page+1; ?>&search=<?php echo urlencode($search); ?>&status=<?php echo $status_filter; ?>&payment=<?php echo $payment_filter; ?>" 
-                       class="page-btn">
-                        <i class="fas fa-chevron-right"></i>
-                    </a>
+                        <a href="?page=orders&p=<?php echo $page+1; ?>&search=<?php echo urlencode($search); ?>&status=<?php echo $status_filter; ?>&payment=<?php echo $payment_filter; ?>&limit=<?php echo $per_page; ?>" 
+                           class="page-btn" aria-label="<?php echo $t('next_page', 'Next page'); ?>">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
                     <?php endif; ?>
+                    <?php endif; ?>
+                </div>
             </div>
-        <?php endif; ?>
-    </div>
+        </div>
 </div>
 
 <!-- Order Details Modal -->
@@ -858,8 +1426,39 @@ function refreshColissimoStatus(orderId) {
         .catch(function () { alert('Error'); });
 }
 
-// Real-time search functionality
+function deleteOrder(orderId) {
+    if (!orderId) return;
+    if (!confirm('<?php echo $t('confirm_delete_order', 'Are you sure you want to delete this order? This action cannot be undone.'); ?>')) {
+        return;
+    }
+
+    postOrdersAction({action: 'delete_order', order_id: orderId})
+        .then(function (res) {
+            if (!res || !res.success) {
+                alert(res && res.message ? res.message : '<?php echo $t('error_deleting_order', 'Error deleting order'); ?>');
+                return;
+            }
+            // Show a lightweight confirmation via the shell toast system when possible
+            try {
+                window.parent.postMessage({ type: 'toast', message: res.message || '<?php echo $t('order_deleted_successfully', 'Order deleted successfully.'); ?>', variant: 'success' }, '*');
+            } catch (e) {}
+            location.reload();
+        })
+        .catch(function () { 
+            alert('<?php echo $t('error_deleting_order', 'Error deleting order'); ?>'); 
+        });
+}
+
+// Search + selection UI
 document.addEventListener('DOMContentLoaded', function() {
+    // Hide initial loading panel shortly after DOM is ready
+    const loadingPanel = document.getElementById('ordersLoadingPanel');
+    if (loadingPanel) {
+        setTimeout(() => {
+            loadingPanel.style.display = 'none';
+        }, 150);
+    }
+
     // Check if we need to open status modal from order details page
     const editOrderStatusId = sessionStorage.getItem('editOrderStatusId');
     if (editOrderStatusId) {
@@ -868,151 +1467,235 @@ document.addEventListener('DOMContentLoaded', function() {
         sessionStorage.removeItem('editOrderStatusId');
         sessionStorage.removeItem('editOrderStatus');
         sessionStorage.removeItem('editOrderPayment');
-        // Open the modal
         setTimeout(() => {
             editOrderStatus(parseInt(editOrderStatusId), currentStatus, currentPayment);
         }, 100);
     }
-    
-    const searchInput = document.querySelector('.search-box input');
-    const clearBtn = document.getElementById('clearFiltersBtn');
-    
+
+    const searchInput = document.getElementById('ordersSearchInput');
     if (searchInput) {
         searchInput.addEventListener('input', debounce(function(e) {
-            const searchTerm = e.target.value.toLowerCase();
+            const searchTerm = (e.target.value || '').toLowerCase();
+            const elements = getOrderElementsForCurrentView();
             let visibleCount = 0;
-            
-            document.querySelectorAll('.order-card').forEach(card => {
-                const text = card.textContent.toLowerCase();
+
+            elements.forEach(el => {
+                const text = (el.textContent || '').toLowerCase();
                 const isVisible = text.includes(searchTerm);
-                card.style.display = isVisible ? '' : 'none';
+                el.style.display = isVisible ? '' : 'none';
                 if (isVisible) visibleCount++;
             });
-            
+
+            syncVisibilityBetweenViews();
             updateResultsCount(visibleCount);
-            toggleClearButton(searchTerm.length > 0);
-        }, 300));
+            toggleSearchClearButton(searchTerm.length > 0);
+            updateSelectAllCheckbox();
+        }, 250));
+    }
+
+    // Initial counters and select-all state
+    updateResultsCount();
+    updateSelectAllCheckbox();
+    updateBulkActionsBar();
+
+    // Debug product images in orders table
+    try {
+        document.querySelectorAll('.product-avatar').forEach(function(el) {
+            console.log('orders avatar debug', {
+                orderId: el.dataset.orderId,
+                productId: el.dataset.productId,
+                rawImg: el.dataset.rawImg,
+                mapImg: el.dataset.mapImg,
+                finalImg: el.dataset.finalImg
+            });
+        });
+        document.querySelectorAll('.product-tooltip-card').forEach(function(el) {
+            console.log('orders tooltip debug', {
+                orderId: el.dataset.orderId,
+                productId: el.dataset.productId,
+                rawImg: el.dataset.rawImg,
+                mapImg: el.dataset.mapImg,
+                finalImg: el.dataset.finalImg
+            });
+        });
+
+        // Click on customer hover card -> filter by customer name
+        document.querySelectorAll('.customer-hover-card').forEach(function(card) {
+            card.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const name = (this.dataset.customerName || '').trim();
+                if (!name) return;
+                const searchInput = document.getElementById('ordersSearchInput');
+                if (!searchInput) return;
+                searchInput.value = name;
+                searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+        });
+    } catch (e) {
+        console.warn('orders image debug failed', e);
     }
 });
 
-// Filter by customer details
-function filterByCustomer(value) {
-    const searchInput = document.querySelector('.search-box input');
-    if (searchInput) {
-        searchInput.value = value;
-        searchInput.dispatchEvent(new Event('input'));
+function changeOrdersPerPage(limit) {
+    limit = parseInt(limit || '0', 10);
+    if (!limit) return;
+    try {
+        const params = new URLSearchParams(window.location.search);
+        params.set('p', '1');
+        params.set('limit', String(limit));
+        if (!params.get('page')) {
+            params.set('page', 'orders');
+        }
+        const base = (window.location.pathname || 'index.php').replace(/\/$/, '') || 'index.php';
+        window.location.href = base + '?' + params.toString();
+    } catch (e) {
+        window.location.search = '?page=orders&p=1&limit=' + encodeURIComponent(String(limit));
     }
 }
 
-// Update results counter
+function isDesktopOrdersTable() {
+    return !!(window.matchMedia && window.matchMedia('(min-width: 1024px)').matches);
+}
+
+function getOrderElementsForCurrentView() {
+    return Array.from(document.querySelectorAll(isDesktopOrdersTable() ? '.order-row' : '.order-card'));
+}
+
+function syncVisibilityBetweenViews() {
+    // Mirror hidden/shown state between table rows and cards by order id
+    const visibleMap = new Map();
+    document.querySelectorAll('.order-row').forEach(row => {
+        const id = row.dataset.orderId;
+        if (id) visibleMap.set(id, row.style.display !== 'none');
+    });
+    document.querySelectorAll('.order-card').forEach(card => {
+        const id = card.dataset.orderId;
+        if (!id) return;
+        if (visibleMap.has(id)) {
+            card.style.display = visibleMap.get(id) ? '' : 'none';
+        }
+    });
+    // If card view is driving, mirror to table
+    document.querySelectorAll('.order-card').forEach(card => {
+        const id = card.dataset.orderId;
+        if (!id) return;
+        const row = document.querySelector(`.order-row[data-order-id="${id}"]`);
+        if (row) row.style.display = (card.style.display !== 'none') ? '' : 'none';
+    });
+}
+
 function updateResultsCount(visibleCount = null) {
-    const totalCount = document.querySelectorAll('.order-card').length;
-    const visible = visibleCount !== null ? visibleCount : document.querySelectorAll('.order-card:not([style*="display: none"])').length;
-    
+    const elements = getOrderElementsForCurrentView();
+    const totalCount = elements.length;
+    const visible = visibleCount !== null ? visibleCount : elements.filter(el => el.style.display !== 'none').length;
+
     const totalElement = document.getElementById('totalCount');
     const visibleElement = document.getElementById('visibleCount');
-    
     if (totalElement) totalElement.textContent = totalCount;
     if (visibleElement) visibleElement.textContent = visible;
 }
 
-// Toggle clear button visibility
-function toggleClearButton(show) {
-    const clearBtn = document.getElementById('clearFiltersBtn');
-    if (clearBtn) {
-        clearBtn.style.display = show ? 'flex' : 'none';
-    }
+function toggleSearchClearButton(show) {
+    const clearBtn = document.getElementById('ordersSearchClear');
+    if (clearBtn) clearBtn.style.display = show ? 'flex' : 'none';
 }
 
-// Clear all filters
-function clearAllFilters() {
-    const searchInput = document.querySelector('.search-box input');
-    if (searchInput) {
-        searchInput.value = '';
-        searchInput.dispatchEvent(new Event('input'));
-    }
-    
-    // Reset all dropdowns
-    document.querySelectorAll('.filter-select').forEach(select => {
-        select.selectedIndex = 0;
-    });
-    
-    toggleClearButton(false);
+function clearOrdersSearch() {
+    const searchInput = document.getElementById('ordersSearchInput');
+    if (!searchInput) return;
+    searchInput.value = '';
+    searchInput.dispatchEvent(new Event('input'));
+    toggleSearchClearButton(false);
 }
 
 // Bulk Actions Functions
 let selectedOrders = new Set();
 
-function toggleOrderSelection(orderId) {
-    const checkbox = document.getElementById(`order-checkbox-${orderId}`);
-    const orderCard = checkbox.closest('.order-card');
-    
-    if (checkbox.checked) {
-        selectedOrders.add(orderId);
-        orderCard.classList.add('selected');
-    } else {
-        selectedOrders.delete(orderId);
-        orderCard.classList.remove('selected');
-    }
-    
+function updateSelectionHeaderUI() {
+    const wrapper = document.querySelector('.orders-table-wrapper');
+    const count = selectedOrders.size;
+    const countEl = document.getElementById('tableSelectedCount');
+    if (countEl) countEl.textContent = String(count);
+    if (wrapper) wrapper.classList.toggle('selection-active', count > 0);
+}
+
+function setOrderSelectedUI(orderId, isSelected) {
+    document.querySelectorAll(`.order-checkbox[data-order-id="${orderId}"]`).forEach(cb => {
+        cb.checked = isSelected;
+    });
+    const row = document.querySelector(`.order-row[data-order-id="${orderId}"]`);
+    const card = document.querySelector(`.order-card[data-order-id="${orderId}"]`);
+    if (row) row.classList.toggle('selected', isSelected);
+    if (card) card.classList.toggle('selected', isSelected);
+}
+
+function toggleOrderSelection(checkboxEl) {
+    if (!checkboxEl || !checkboxEl.dataset) return;
+    const orderId = parseInt(checkboxEl.dataset.orderId);
+    if (!orderId) return;
+    if (checkboxEl.checked) selectedOrders.add(orderId);
+    else selectedOrders.delete(orderId);
+    setOrderSelectedUI(orderId, checkboxEl.checked);
     updateBulkActionsBar();
     updateSelectAllCheckbox();
 }
 
-function toggleSelectAll() {
-    const selectAllCheckbox = document.getElementById('selectAllOrders');
-    const isChecked = selectAllCheckbox.checked;
-    
-    document.querySelectorAll('.order-checkbox').forEach(checkbox => {
-        const orderCard = checkbox.closest('.order-card');
-        // Only select visible orders
-        if (orderCard && orderCard.style.display !== 'none') {
-            checkbox.checked = isChecked;
-            const orderId = parseInt(checkbox.dataset.orderId);
-            
-            if (isChecked) {
-                selectedOrders.add(orderId);
-                orderCard.classList.add('selected');
-            } else {
-                selectedOrders.delete(orderId);
-                orderCard.classList.remove('selected');
-            }
-        }
+function toggleSelectAll(sourceCheckbox) {
+    const isChecked = !!(sourceCheckbox && sourceCheckbox.checked);
+    const elements = getOrderElementsForCurrentView();
+
+    elements.forEach(el => {
+        if (el.style.display === 'none') return;
+        const orderId = parseInt(el.dataset.orderId);
+        if (!orderId) return;
+        // Skip locked orders (no checkbox rendered)
+        const anyCheckbox = document.querySelector(`.order-checkbox[data-order-id="${orderId}"]`);
+        if (!anyCheckbox) return;
+
+        if (isChecked) selectedOrders.add(orderId);
+        else selectedOrders.delete(orderId);
+        setOrderSelectedUI(orderId, isChecked);
     });
-    
+
     updateBulkActionsBar();
+    updateSelectAllCheckbox();
 }
 
 function updateSelectAllCheckbox() {
-    const selectAllCheckbox = document.getElementById('selectAllOrders');
-    const visibleCheckboxes = Array.from(document.querySelectorAll('.order-checkbox')).filter(cb => {
-        const orderCard = cb.closest('.order-card');
-        return orderCard && orderCard.style.display !== 'none';
+    const elements = getOrderElementsForCurrentView().filter(el => el.style.display !== 'none');
+    const visibleIds = elements
+        .map(el => parseInt(el.dataset.orderId))
+        .filter(Boolean)
+        .filter(id => document.querySelector(`.order-checkbox[data-order-id="${id}"]`));
+
+    const selectedVisible = visibleIds.filter(id => selectedOrders.has(id));
+
+    document.querySelectorAll('.select-all-orders-checkbox').forEach(selectAllCheckbox => {
+        if (visibleIds.length === 0) {
+            selectAllCheckbox.indeterminate = false;
+            selectAllCheckbox.checked = false;
+            return;
+        }
+        if (selectedVisible.length === visibleIds.length) {
+            selectAllCheckbox.indeterminate = false;
+            selectAllCheckbox.checked = true;
+        } else if (selectedVisible.length > 0) {
+            selectAllCheckbox.indeterminate = true;
+            selectAllCheckbox.checked = false;
+        } else {
+            selectAllCheckbox.indeterminate = false;
+            selectAllCheckbox.checked = false;
+        }
     });
-    const checkedCheckboxes = visibleCheckboxes.filter(cb => cb.checked);
-    
-    if (visibleCheckboxes.length === 0) {
-        selectAllCheckbox.indeterminate = false;
-        selectAllCheckbox.checked = false;
-    } else if (checkedCheckboxes.length === visibleCheckboxes.length) {
-        selectAllCheckbox.indeterminate = false;
-        selectAllCheckbox.checked = true;
-    } else if (checkedCheckboxes.length > 0) {
-        selectAllCheckbox.indeterminate = true;
-        selectAllCheckbox.checked = false;
-    } else {
-        selectAllCheckbox.indeterminate = false;
-        selectAllCheckbox.checked = false;
-    }
 }
 
 function updateBulkActionsBar() {
     const toolbar = document.getElementById('bulkActionsToolbar');
     const selectedCount = document.getElementById('selectedCount');
     const selectedText = document.getElementById('selectedText');
-    
+
     const count = selectedOrders.size;
-    
+
     if (count > 0) {
         toolbar.style.display = 'flex';
         selectedCount.textContent = count;
@@ -1020,19 +1703,20 @@ function updateBulkActionsBar() {
     } else {
         toolbar.style.display = 'none';
     }
+
+    updateSelectionHeaderUI();
 }
 
 function clearSelection() {
     selectedOrders.clear();
     document.querySelectorAll('.order-checkbox').forEach(checkbox => {
         checkbox.checked = false;
-        const orderCard = checkbox.closest('.order-card');
-        if (orderCard) {
-            orderCard.classList.remove('selected');
-        }
     });
-    document.getElementById('selectAllOrders').checked = false;
-    document.getElementById('selectAllOrders').indeterminate = false;
+    document.querySelectorAll('.order-row.selected, .order-card.selected').forEach(el => el.classList.remove('selected'));
+    document.querySelectorAll('.select-all-orders-checkbox').forEach(cb => {
+        cb.checked = false;
+        cb.indeterminate = false;
+    });
     updateBulkActionsBar();
 }
 
@@ -1057,7 +1741,7 @@ async function printSelectedInvoices() {
     try {
         // Open bulk print page with all selected order IDs
         const orderIdsParam = selectedIds.join(',');
-        const printWindow = window.open(`?page=order_bulk_print&ids=${orderIdsParam}`, '_blank', 'width=1200,height=800');
+        const printWindow = window.open(`?content=1&page=order_bulk_print&ids=${orderIdsParam}`, '_blank', 'width=1200,height=800');
         
         if (!printWindow) {
             alert(window.translations.allow_popups);
@@ -1082,13 +1766,13 @@ document.addEventListener('keydown', function(e) {
     // Focus search with /
     if (e.key === '/' && !e.target.matches('input, textarea')) {
         e.preventDefault();
-        const searchInput = document.querySelector('.search-box input');
+        const searchInput = document.getElementById('ordersSearchInput');
         if (searchInput) searchInput.focus();
     }
     
-    // Clear filters with Escape
+    // Clear search with Escape
     if (e.key === 'Escape') {
-        clearAllFilters();
+        clearOrdersSearch();
     }
     
     // Refresh with R
@@ -1099,8 +1783,14 @@ document.addEventListener('keydown', function(e) {
 });
 
 function viewOrder(orderId) {
-    // Navigate to order details page
-    window.location.href = '?page=order_view_details&id=' + orderId;
+    // Navigate to order details page; keep content=1 when in iframe so details load in frame
+    var isFrame = window.self !== window.top;
+    var base = (window.location.pathname || 'index.php').replace(/\/$/, '') || 'index.php';
+    var params = new URLSearchParams(window.location.search);
+    params.set('page', 'order_view_details');
+    params.set('id', String(orderId));
+    if (isFrame) params.set('content', '1');
+    window.location.href = base + '?' + params.toString();
 }
 
 function closeOrderModal() {
@@ -1109,6 +1799,10 @@ function closeOrderModal() {
 }
 
 function editOrderStatus(orderId, currentStatus, currentPayment) {
+    if (window.self !== window.top && window.location.search.indexOf('modal=status') === -1) {
+        try { window.parent.postMessage({ type: 'open_order_status_modal', orderId: orderId, status: currentStatus || 'pending', payment: currentPayment || 'pending' }, '*'); } catch (e) {}
+        return;
+    }
     document.getElementById('statusOrderId').value = orderId;
     document.getElementById('statusSelect').value = currentStatus;
     document.getElementById('paymentStatusSelect').value = currentPayment;
@@ -1173,120 +1867,6 @@ document.getElementById('updateStatusModal').addEventListener('click', function(
 
 .orders-management-container {
     padding: 0;
-}
-
-/* Statistics Cards Grid */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.stat-card {
-    background: var(--bg-card);
-    border-radius: 6px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    border: 1px solid var(--border-primary);
-}
-
-.stat-card:hover {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-}
-
-.stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--color-primary-db), var(--color-accent));
-    border-radius: 16px 16px 0 0;
-}
-
-.stat-card-header {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    margin-bottom: 0;
-    min-height: 0;
-    pointer-events: none;
-}
-
-.stat-card-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    color: white;
-    flex-shrink: 0;
-    position: absolute;
-    top: 1.25rem;
-    right: 1.25rem;
-}
-
-.stat-card-icon.primary {
-    background: linear-gradient(135deg, var(--color-primary-db), var(--color-primary-db-hover));
-}
-
-.stat-card-icon.success {
-    background: linear-gradient(135deg, #10b981, #059669);
-}
-
-.stat-card-icon.warning {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-}
-
-.stat-card-icon.info {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-}
-
-.stat-card-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding-right: 4.5rem;
-}
-
-.stat-card-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1;
-}
-
-.stat-card-label {
-    color: var(--text-secondary);
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-.stat-card-change {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-.stat-card-change.positive {
-    color: #10b981;
-}
-
-.stat-card-change.negative {
-    color: #ef4444;
-}
-
-.stat-card-change i {
-    font-size: 0.75rem;
 }
 
 /* Filters Section */
@@ -1397,8 +1977,9 @@ document.getElementById('updateStatusModal').addEventListener('click', function(
 .orders-container {
     background: var(--bg-card);
     border-radius: 6px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    border: 1px solid var(--border-primary);
 }
 
 .orders-header {
@@ -1419,6 +2000,631 @@ document.getElementById('updateStatusModal').addEventListener('click', function(
     gap: 1.5rem;
 }
 
+/* IndexBar (Shopify-like) */
+.orders-indexbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: var(--bg-card);
+
+    margin-bottom: 1rem;
+}
+
+.orders-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: min(560px, 100%);
+}
+
+.orders-search i {
+    position: absolute;
+    left: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+#ordersSearchInput {
+    width: 100%;
+    height: 40px;
+    padding: 0.5rem 2.5rem 0.5rem 2.25rem;
+    border: 1px solid var(--border-primary);
+    border-radius: 6px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    outline: none;
+}
+
+#ordersSearchInput:focus {
+    border-color: var(--color-primary-db);
+    box-shadow: 0 0 0 3px var(--color-primary-db-light);
+}
+
+.orders-search-clear {
+    position: absolute;
+    right: 0.5rem;
+    height: 30px;
+    width: 30px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.orders-search-clear:hover {
+    background: rgba(148, 163, 184, 0.15);
+}
+
+.orders-indexbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.indexbar-icon-btn {
+    height: 40px;
+    width: 40px;
+    border-radius: 6px;
+    border: 1px solid var(--border-primary);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.indexbar-icon-btn:hover {
+    border-color: var(--color-primary-db);
+    color: var(--color-primary-db);
+}
+
+/* Desktop Orders Table */
+.orders-table-wrapper {
+    margin-top: 1rem;
+    border-radius: 6px;
+    overflow: visible;
+    border: 1px solid var(--border-primary);
+    background: var(--bg-card);
+    display: none;
+}
+
+.orders-loading-panel {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border-primary);
+    background: var(--bg-secondary);
+}
+
+.orders-spinner {
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    border: 2px solid rgba(148, 163, 184, 0.35);
+    border-top-color: var(--color-primary-db);
+    animation: ordersSpin 0.75s linear infinite;
+}
+
+@keyframes ordersSpin {
+    to { transform: rotate(360deg); }
+}
+
+.orders-loading-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.orders-table th,
+.orders-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-primary);
+    text-align: left;
+    vertical-align: middle;
+}
+
+.orders-table thead th {
+    background: var(--bg-secondary);
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.orders-table-checkbox-head {
+    width: 44px;
+}
+
+.orders-table-heading-order {
+    position: relative;
+}
+
+.orders-table-checkbox-head input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 4px;
+    border: 2px solid var(--border-primary);
+    background-color: transparent;
+    cursor: pointer;
+    display: inline-block;
+    position: relative;
+}
+
+.orders-table-checkbox-head input[type="checkbox"]:checked {
+    border-color: var(--color-primary-db);
+    background-color: var(--color-primary-db);
+}
+
+.orders-table-checkbox-head input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-bottom: 2px solid #ffffff;
+    border-right: 2px solid #ffffff;
+    transform: rotate(45deg);
+}
+
+.table-heading-selected {
+    display: none;
+    align-items: center;
+    gap: 0.25rem;
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    white-space: nowrap;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.orders-table-wrapper.selection-active .table-heading-label {
+    opacity: 0;
+}
+
+.orders-table-wrapper.selection-active .orders-table-heading-order .table-heading-selected {
+    display: inline-flex;
+}
+
+.orders-table tbody tr:hover td {
+    background: rgba(148, 163, 184, 0.08);
+}
+
+.order-row.selected td {
+    background: var(--color-primary-db-light);
+}
+
+.table-order-number {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.table-order-id {
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.table-order-date,
+.table-customer-email,
+.table-customer-phone {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+.table-customer-name {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 0.125rem;
+}
+
+.table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.orders-table td.amount-cell {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.orders-table td.total-column,
+.orders-table th .table-heading-label {
+    white-space: nowrap;
+}
+
+.orders-table td.total-column {
+    min-width: 140px;
+}
+
+.table-products-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+}
+
+.products-avatars {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.product-avatar {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-primary);
+}
+
+.product-avatar-inner {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.product-avatar-inner img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.product-avatar-inner span {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.product-avatar.more {
+    background: var(--bg-secondary);
+    border-style: dashed;
+}
+
+.product-avatar.more span {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.product-qty {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    padding: 0 3px;
+    border-radius: 4px;
+    background: rgba(15, 23, 42, 0.85);
+    color: #fff;
+    font-size: 0.625rem;
+    font-weight: 600;
+}
+
+.products-tooltip {
+    position: absolute;
+    left: 0;
+    right: auto;
+    bottom: 100%;
+    z-index: 20;
+    min-width: 260px;
+    max-width: 360px;
+    padding: 0.75rem 0.85rem;
+    border-radius: 8px;
+    background: var(--bg-card);
+    box-shadow: var(--shadow-lg);
+    border: 1px dashed var(--border-primary);
+    display: none;
+}
+
+.product-tooltip-card {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 0.6rem;
+    align-items: center;
+    padding: 0.45rem 0.55rem;
+    border-radius: 6px;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.product-tooltip-card:hover {
+    background: var(--bg-secondary);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.product-tooltip-media {
+    width: 52px;
+    height: 52px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-primary);
+}
+
+.product-tooltip-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.product-tooltip-placeholder {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.product-tooltip-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.product-tooltip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.product-tooltip-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.product-tooltip-qty {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.product-tooltip-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.product-tooltip-sku {
+    white-space: nowrap;
+}
+
+.product-tooltip-price {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.product-tooltip-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    margin-top: 0.15rem;
+}
+
+.product-tooltip-footer .label {
+    color: var(--text-secondary);
+}
+
+.product-tooltip-footer .value {
+    font-weight: 600;
+    color: var(--color-primary-db);
+}
+
+.table-products-cell:hover .products-tooltip,
+.products-tooltip:hover {
+    display: block;
+}
+
+.table-customer-cell {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    /* Increase the hoverable area so moving up into the card doesn't leave a gap */
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+.customer-hover-card {
+    position: absolute;
+    left: 0;
+    right: auto;
+    /* Sit directly above the cell to avoid any dead zone between name and card */
+    bottom: calc(100% - 4px);
+    min-width: 220px;
+    padding: 0.75rem 0.85rem;
+    border-radius: 6px;
+    background: var(--bg-card);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-primary);
+    display: none;
+    z-index: 20;
+    max-height: 220px;
+    overflow-y: auto;
+    cursor: pointer;
+}
+
+.customer-hover-row {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+.table-customer-cell:hover .customer-hover-card {
+    display: block;
+}
+
+.customer-hover-card:hover {
+    display: block;
+}
+
+.status-history-cell {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.status-history-tooltip {
+    position: absolute;
+    left: auto;
+    right: 0;
+    bottom: 120%;
+    min-width: 240px;
+    padding: 0.75rem 0.85rem;
+    border-radius: 6px;
+    background: var(--bg-card);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-primary);
+    display: none;
+    z-index: 20;
+}
+
+.history-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.35rem;
+}
+
+.history-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.history-label {
+    font-weight: 500;
+}
+
+.history-value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.status-history-cell:hover .status-history-tooltip {
+    display: block;
+}
+
+.status-history-tooltip:hover {
+    display: block;
+}
+
+.table-actions.icons-only {
+    gap: 0.25rem;
+}
+
+.icon-action-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 5px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.icon-action-btn:hover {
+    color: var(--color-primary-db);
+    background-color: rgba(148, 163, 184, 0.18);
+}
+
+.icon-action-btn.danger:hover {
+    color: var(--color-error);
+    background-color: rgba(239, 68, 68, 0.12);
+}
+
+/* Dark mode tweaks for status/payment badges on orders table */
+[data-theme="dark"] .orders-table .status-badge.status-pending,
+[data-theme="dark"] .order-card .status-badge.status-pending {
+    background: rgba(250, 204, 21, 0.18);
+    color: #facc15;
+}
+
+[data-theme="dark"] .orders-table .status-badge.status-processing,
+[data-theme="dark"] .order-card .status-badge.status-processing {
+    background: rgba(56, 189, 248, 0.18);
+    color: #7dd3fc;
+}
+
+[data-theme="dark"] .orders-table .status-badge.status-shipped,
+[data-theme="dark"] .order-card .status-badge.status-shipped {
+    background: rgba(129, 140, 248, 0.22);
+    color: #c7d2fe;
+}
+
+[data-theme="dark"] .orders-table .status-badge.status-delivered,
+[data-theme="dark"] .order-card .status-badge.status-delivered {
+    background: rgba(34, 197, 94, 0.22);
+    color: #bbf7d0;
+}
+
+[data-theme="dark"] .orders-table .status-badge.status-cancelled,
+[data-theme="dark"] .order-card .status-badge.status-cancelled {
+    background: rgba(248, 113, 113, 0.22);
+    color: #fecaca;
+}
+
+[data-theme="dark"] .orders-table .payment-badge.payment-pending,
+[data-theme="dark"] .order-card .payment-badge.payment-pending {
+    background: rgba(250, 204, 21, 0.18);
+    color: #facc15;
+}
+
+[data-theme="dark"] .orders-table .payment-badge.payment-paid,
+[data-theme="dark"] .order-card .payment-badge.payment-paid {
+    background: rgba(34, 197, 94, 0.22);
+    color: #bbf7d0;
+}
+
+[data-theme="dark"] .orders-table .payment-badge.payment-failed,
+[data-theme="dark"] .order-card .payment-badge.payment-failed {
+    background: rgba(248, 113, 113, 0.22);
+    color: #fecaca;
+}
+
+[data-theme="dark"] .orders-table .payment-badge.payment-refunded,
+[data-theme="dark"] .order-card .payment-badge.payment-refunded {
+    background: rgba(219, 234, 254, 0.18);
+    color: #bfdbfe;
+}
+
 .order-card {
     background: var(--bg-card);
     border: 2px solid #f1f5f9;
@@ -1437,7 +2643,6 @@ document.getElementById('updateStatusModal').addEventListener('click', function(
 
 .order-header {
     padding: 1.5rem;
-    background: var(--bg-secondary);
     border-bottom: 2px solid #f1f5f9;
     display: flex;
     justify-content: space-between;
@@ -1605,7 +2810,6 @@ document.getElementById('updateStatusModal').addEventListener('click', function(
 
 .order-footer {
     padding: 1.5rem;
-    background: var(--bg-secondary);
     border-top: 2px solid #f1f5f9;
     display: flex;
     gap: 1rem;
@@ -1670,8 +2874,9 @@ document.getElementById('updateStatusModal').addEventListener('click', function(
 /* Pagination */
 .pagination {
     display: flex;
-    justify-content: center;
-    gap: 0.5rem;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
     margin-top: 2rem;
     padding-top: 2rem;
     border-top: 2px solid #f1f5f9;
@@ -1704,6 +2909,34 @@ document.getElementById('updateStatusModal').addEventListener('click', function(
     color: var(--text-inverse);
 }
 
+.pagination-rows {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.rows-label {
+    font-weight: 500;
+}
+
+.rows-select {
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid var(--border-primary);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    padding: 0 0.75rem;
+    font-size: 0.875rem;
+}
+
+.pagination-pages {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
 /* Modal */
 .modal-overlay {
     position: fixed;
@@ -1711,8 +2944,9 @@ document.getElementById('updateStatusModal').addEventListener('click', function(
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     z-index: 10000;
     display: none;
     align-items: center;
@@ -1898,186 +3132,6 @@ document.getElementById('updateStatusModal').addEventListener('click', function(
     }
 }
 
-/* Large Tablet (992px - 1199px) */
-@media (max-width: 1199px) and (min-width: 992px) {
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-/* Tablet (768px - 991px) */
-@media (max-width: 991px) and (min-width: 768px) {
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-    }
-    
-    .stat-card {
-        padding: 1rem;
-    }
-    
-    .stat-card-value {
-        font-size: 1.75rem;
-    }
-}
-
-/* Mobile Large (576px - 767px) */
-@media (max-width: 767px) and (min-width: 576px) {
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.5rem;
-    }
-    
-    .stat-card {
-        padding: 1rem;
-        border-radius: 6px;
-        min-height: 80px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-    
-    .stat-card-header {
-        justify-content: flex-end;
-    }
-    
-    .stat-card-icon {
-        width: 40px;
-        height: 40px;
-        font-size: 1rem;
-        top: 1rem;
-        right: 1rem;
-    }
-    
-    .stat-card-content {
-        align-items: flex-start;
-        text-align: left;
-        padding-right: 4rem;
-    }
-    
-    .stat-card-value {
-        font-size: 1.25rem;
-        margin-bottom: 0.25rem;
-    }
-    
-    .stat-card-label {
-        font-size: 0.75rem;
-        margin-bottom: 0.25rem;
-    }
-    
-    .stat-card-change {
-        font-size: 0.6875rem;
-        justify-content: flex-start;
-    }
-    
-    .stat-card-change i {
-        font-size: 0.625rem;
-    }
-}
-
-/* Mobile Small (up to 575px) */
-@media (max-width: 575px) {
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.375rem;
-    }
-    
-    .stat-card {
-        padding: 0.75rem;
-        border-radius: 6px;
-        min-height: 80px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-    
-    .stat-card-header {
-        margin-bottom: 0;
-        justify-content: flex-end;
-    }
-    
-    .stat-card-icon {
-        width: 32px;
-        height: 32px;
-        font-size: 0.875rem;
-        top: 0.85rem;
-        right: 0.85rem;
-    }
-    
-    .stat-card-content {
-        align-items: flex-start;
-        text-align: left;
-        gap: 0.25rem;
-        padding-right: 3.5rem;
-    }
-    
-    .stat-card-value {
-        font-size: 1rem;
-        line-height: 1.1;
-        margin-bottom: 0.125rem;
-    }
-    
-    .stat-card-label {
-        font-size: 0.6875rem;
-        margin-bottom: 0.125rem;
-        line-height: 1.2;
-    }
-    
-    .stat-card-change {
-        font-size: 0.625rem;
-        justify-content: flex-start;
-        line-height: 1.2;
-    }
-    
-    .stat-card-change i {
-        font-size: 0.5rem;
-    }
-}
-
-/* Extra Small Mobile (up to 375px) */
-@media (max-width: 375px) {
-    .stats-grid {
-        grid-template-columns: 1fr;
-        gap: 0.25rem;
-    }
-    
-    .stat-card {
-        padding: 0.5rem 0.75rem;
-        min-height: 60px;
-        flex-direction: row;
-        align-items: center;
-        text-align: left;
-    }
-    
-    .stat-card-header {
-        margin-bottom: 0;
-        margin-right: 0.75rem;
-        justify-content: flex-end;
-    }
-    
-    .stat-card-content {
-        align-items: flex-start;
-        text-align: left;
-        flex: 1;
-        padding-right: 3rem;
-    }
-    
-    .stat-card-value {
-        font-size: 1rem;
-        margin-bottom: 0.125rem;
-    }
-    
-    .stat-card-label {
-        font-size: 0.6875rem;
-        margin-bottom: 0.125rem;
-    }
-    
-    .stat-card-change {
-        font-size: 0.625rem;
-        justify-content: flex-start;
-    }
-}
-
 /* Bulk Actions Styles */
 .select-all-checkbox {
     display: flex;
@@ -2091,8 +3145,27 @@ document.getElementById('updateStatusModal').addEventListener('click', function(
 .select-all-checkbox input[type="checkbox"] {
     width: 18px;
     height: 18px;
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 4px;
+    border: 2px solid var(--border-primary);
+    background-color: transparent;
     cursor: pointer;
-    accent-color: var(--color-primary-db);
+    position: relative;
+}
+
+.select-all-checkbox input[type="checkbox"]:checked {
+    border-color: var(--color-primary-db);
+    background-color: var(--color-primary-db);
+}
+
+.select-all-checkbox input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-bottom: 2px solid #ffffff;
+    border-right: 2px solid #ffffff;
+    transform: rotate(45deg);
 }
 
 .checkbox-label {
@@ -2115,9 +3188,28 @@ document.getElementById('updateStatusModal').addEventListener('click', function(
 .order-checkbox {
     width: 20px;
     height: 20px;
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 4px;
+    border: 2px solid var(--border-primary);
+    background-color: transparent;
     cursor: pointer;
-    accent-color: var(--color-primary-db);
+    position: relative;
     transition: transform 0.2s ease;
+}
+
+.order-checkbox:checked {
+    border-color: var(--color-primary-db);
+    background-color: var(--color-primary-db);
+}
+
+.order-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border-bottom: 2px solid #ffffff;
+    border-right: 2px solid #ffffff;
+    transform: rotate(45deg);
 }
 
 .order-checkbox:hover {
@@ -2133,6 +3225,19 @@ document.getElementById('updateStatusModal').addEventListener('click', function(
     border-color: var(--color-primary-db);
     box-shadow: 0 0 0 2px var(--color-primary-db-light);
     background: var(--color-primary-db-light);
+}
+
+/* Show table on wide screens, keep cards for mobile */
+@media (min-width: 1024px) {
+    .orders-table-wrapper {
+        display: block;
+    }
+    .orders-list {
+        display: none;
+    }
+    .select-all-mobile {
+        display: none;
+    }
 }
 
 .bulk-actions-toolbar {

@@ -103,12 +103,13 @@ class PlanHelper {
             $stmt->execute([$orderId, $storeId]);
             return (bool) $stmt->fetch();
         }
+        $limit = (int) $limit;
         $stmt = $conn->prepare("
             SELECT 1 FROM (
-                SELECT id FROM orders WHERE store_id = ? ORDER BY created_at DESC LIMIT ?
+                SELECT id FROM orders WHERE store_id = ? ORDER BY created_at DESC LIMIT " . $limit . "
             ) t WHERE id = ?
         ");
-        $stmt->execute([$storeId, $limit, $orderId]);
+        $stmt->execute([$storeId, $orderId]);
         return (bool) $stmt->fetch();
     }
 }
