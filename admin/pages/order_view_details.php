@@ -27,14 +27,13 @@ $t = function($key, $default = null) {
     return Language::t($key, $default);
 };
 
-// Get order ID
+// Get order ID and content param (keep in iframe when loaded with content=1)
 $order_id = $_GET['id'] ?? 0;
 $print_mode = isset($_GET['print']) && $_GET['print'] == '1';
+$content_param = (isset($_GET['content']) && $_GET['content'] === '1') ? '&content=1' : '';
 
 if (!$order_id) {
-    $back = '?page=orders';
-    if (isset($_GET['content']) && $_GET['content'] === '1') $back .= '&content=1';
-    header('Location: ' . $back);
+    header('Location: ?page=orders' . $content_param);
     exit;
 }
 
@@ -64,12 +63,12 @@ $stmt->execute([$order_id, $store_id]);
 $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$order) {
-    header('Location: ?page=orders&error=' . urlencode($t('order_not_found', 'Order not found')));
+    header('Location: ?page=orders&error=' . urlencode($t('order_not_found', 'Order not found')) . $content_param);
     exit;
 }
 
 if (!PlanHelper::canViewOrder($conn, $store_id, $order_id)) {
-    header('Location: ?page=orders&error=' . urlencode($t('order_limit_upgrade', 'This order is outside your plan limit. Upgrade to view more orders.')));
+    header('Location: ?page=orders&error=' . urlencode($t('order_limit_upgrade', 'This order is outside your plan limit. Upgrade to view more orders.')) . $content_param);
     exit;
 }
 
@@ -396,7 +395,7 @@ function formatAddress($address) {
     <!-- Header Section -->
     <div class="order-view-header">
         <div class="header-left">
-            <a href="?page=orders" class="back-btn">
+            <a href="?page=orders<?php echo $content_param; ?>" class="back-btn">
                 <i class="fas fa-arrow-left"></i> <?php echo $t('back_to_orders', 'Back to Orders'); ?>
             </a>
             <div class="order-title-section">
@@ -743,56 +742,56 @@ function editOrderStatus(orderId, currentStatus, currentPayment) {
 .payment-badge {
     display: inline-flex;
     align-items: center;
-    padding: 0.375rem 0.75rem;
-    border-radius: 6px;
-    font-size: 0.875rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
     font-weight: 600;
-    text-transform: uppercase;
+    text-transform: capitalize;
 }
 
 .status-badge.status-pending {
     background: var(--color-warning-light);
-    color: var(--color-warning-dark);
+    color: #92400e;
 }
 
 .status-badge.status-processing {
     background: var(--color-info-light);
-    color: var(--color-info-dark);
+    color: #1e40af;
 }
 
 .status-badge.status-shipped {
     background: var(--color-primary-light);
-    color: var(--color-primary-dark);
+    color: #3730a3;
 }
 
 .status-badge.status-delivered {
     background: var(--color-success-light);
-    color: var(--color-success-dark);
+    color: #166534;
 }
 
 .status-badge.status-cancelled {
     background: var(--color-error-light);
-    color: var(--color-error-dark);
+    color: #991b1b;
 }
 
 .payment-badge.payment-pending {
     background: var(--color-warning-light);
-    color: var(--color-warning-dark);
+    color: #92400e;
 }
 
 .payment-badge.payment-paid {
     background: var(--color-success-light);
-    color: var(--color-success-dark);
+    color: #166534;
 }
 
 .payment-badge.payment-failed {
     background: var(--color-error-light);
-    color: var(--color-error-dark);
+    color: #991b1b;
 }
 
 .payment-badge.payment-refunded {
-    background: var(--color-secondary-light);
-    color: var(--color-secondary-dark);
+    background: var(--color-accent-light);
+    color: #6b21a8;
 }
 
 .order-meta-header {

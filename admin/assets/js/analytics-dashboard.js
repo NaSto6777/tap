@@ -479,36 +479,25 @@ document.addEventListener('DOMContentLoaded', function () {
     const rows = orders.map(order => {
       const total = Number(order.total) || 0;
       const status = (order.status || 'pending').toLowerCase();
-      const badge = status === 'paid' ? 'success' : status === 'pending' ? 'warning' : status === 'refunded' ? 'secondary' : 'info';
-      
-      // Accumulate totals
+
+      // Accumulate totals (keep existing stats behavior)
       grandTotal += total;
       if (status === 'paid') {
         paidTotal += total;
       } else if (status === 'pending') {
         pendingTotal += total;
       }
-      
+
       const translations = window.translations || {};
-      const statusTranslations = {
-        'paid': translations.paid || 'Paid',
-        'pending': translations.pending || 'Pending',
-        'refunded': translations.refunded || 'Refunded',
-        'failed': translations.failed || 'Failed'
-      };
-      const statusText = statusTranslations[status] || status.charAt(0).toUpperCase() + status.slice(1);
-      
+      const products = (order.products && String(order.products).trim()) ? order.products : (translations.products || '—');
+      const customer = order.customer_name || order.customer_email || (translations.guest || 'Guest');
+
       return `
         <tr data-order-id="${order.id}">
-          <td>${order.order_number || order.id}</td>
-          <td>${order.customer_name || order.customer_email || (translations.guest || 'Guest')}</td>
+          <td>${products}</td>
+          <td>${customer}</td>
           <td>${order.date || ''}</td>
-          <td>${formatCurrency(total)}</td>
-          <td><span class="badge bg-${badge}">${statusText}</span></td>
-          <td class="orders-actions">
-            <button class="btn btn-sm btn-outline-primary js-view-order" data-order-id="${order.id}">${translations.view || 'View'}</button>
-            <button class="btn btn-sm btn-light js-mark-paid" data-order-id="${order.id}">${translations.mark_paid || 'Mark Paid'}</button>
-          </td>
+          <td class="amount-cell total-column">${formatCurrency(total)}</td>
         </tr>
       `;
     }).join('');
@@ -537,15 +526,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const translations = window.translations || {};
     container.innerHTML = `
-      <table class="analytics-table">
+      <table class="orders-table">
         <thead>
           <tr>
-            <th>${translations.order_number || 'Order #'}</th>
-            <th>${translations.customer || 'Customer'}</th>
-            <th>${translations.date || 'Date'}</th>
-            <th>${translations.total || 'Total'}</th>
-            <th>${translations.status || 'Status'}</th>
-            <th>${translations.actions || 'Actions'}</th>
+            <th><span class="table-heading-label">${translations.products || 'Products'}</span></th>
+            <th><span class="table-heading-label">${translations.customer || 'Customer'}</span></th>
+            <th><span class="table-heading-label">${translations.date || 'Date'}</span></th>
+            <th class="amount-cell total-column"><span class="table-heading-label">${translations.total_amount || 'Total Amount'}</span></th>
           </tr>
         </thead>
         <tbody>
@@ -553,28 +540,6 @@ document.addEventListener('DOMContentLoaded', function () {
         </tbody>
       </table>
     `;
-
-    container.querySelectorAll('.js-view-order').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const orderId = btn.dataset.orderId;
-        window.location.href = `?page=orders&view=${orderId}`;
-      });
-    });
-
-    container.querySelectorAll('.js-mark-paid').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const translations = window.translations || {};
-        const orderId = btn.dataset.orderId;
-        if (!confirm(translations.mark_order_paid_confirm || 'Mark this order as paid?')) return;
-        try {
-          await postAnalyticsAction('mark_order_paid', { order_id: orderId });
-          alert(translations.order_marked_paid || 'Order marked as paid.');
-          fetchRecentOrders();
-        } catch (error) {
-          alert(error.message);
-        }
-      });
-    });
   };
 
   const initRecentOrders = () => {

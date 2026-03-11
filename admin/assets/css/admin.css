@@ -509,13 +509,13 @@ body {
   background: var(--border-tertiary);
 }
 
+/* Scrollbar hidden in navbar/sidebar */
 .sidebar:hover {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-secondary) transparent;
+  scrollbar-width: none;
 }
-
 .sidebar:hover::-webkit-scrollbar {
-  width: 6px;
+  width: 0;
+  display: none;
 }
 
 /* Sidebar Header */
@@ -644,17 +644,13 @@ body {
   border-radius: var(--radius-full);
 }
 
+/* Keep scrollbar hidden in nav section */
 .sidebar:hover .sidebar-nav {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-primary) transparent;
+  scrollbar-width: none;
 }
-
 .sidebar:hover .sidebar-nav::-webkit-scrollbar {
-  width: 6px;
-}
-
-.sidebar:hover .sidebar-nav::-webkit-scrollbar-thumb {
-  background: var(--border-primary);
+  width: 0;
+  display: none;
 }
 
 .nav-section {
@@ -1594,61 +1590,94 @@ body {
   color: var(--text-primary);
 }
 
+/* Status & payment badges – match orders page colors */
 .status-badge,
 .payment-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  text-transform: capitalize;
 }
 
 .status-badge.status-pending {
   background: var(--color-warning-light);
-  color: var(--color-warning-dark);
+  color: #92400e;
 }
 
 .status-badge.status-processing {
   background: var(--color-info-light);
-  color: var(--color-info-dark);
+  color: #1e40af;
 }
 
 .status-badge.status-shipped {
   background: var(--color-primary-light);
-  color: var(--color-primary-dark);
+  color: #3730a3;
 }
 
 .status-badge.status-delivered {
   background: var(--color-success-light);
-  color: var(--color-success-dark);
+  color: #166534;
 }
 
 .status-badge.status-cancelled {
   background: var(--color-error-light);
-  color: var(--color-error-dark);
+  color: #991b1b;
 }
 
 .payment-badge.payment-pending {
   background: var(--color-warning-light);
-  color: var(--color-warning-dark);
+  color: #92400e;
 }
 
 .payment-badge.payment-paid {
   background: var(--color-success-light);
-  color: var(--color-success-dark);
+  color: #166534;
 }
 
 .payment-badge.payment-failed {
   background: var(--color-error-light);
-  color: var(--color-error-dark);
+  color: #991b1b;
 }
 
 .payment-badge.payment-refunded {
   background: var(--color-accent-light);
-  color: var(--color-accent-dark);
+  color: #6b21a8;
+}
+
+[data-theme="dark"] .status-badge.status-pending,
+[data-theme="dark"] .payment-badge.payment-pending {
+  background: rgba(250, 204, 21, 0.18);
+  color: #facc15;
+}
+
+[data-theme="dark"] .status-badge.status-processing {
+  background: rgba(56, 189, 248, 0.18);
+  color: #7dd3fc;
+}
+
+[data-theme="dark"] .status-badge.status-shipped {
+  background: rgba(129, 140, 248, 0.22);
+  color: #c7d2fe;
+}
+
+[data-theme="dark"] .status-badge.status-delivered,
+[data-theme="dark"] .payment-badge.payment-paid {
+  background: rgba(34, 197, 94, 0.22);
+  color: #bbf7d0;
+}
+
+[data-theme="dark"] .status-badge.status-cancelled,
+[data-theme="dark"] .payment-badge.payment-failed {
+  background: rgba(248, 113, 113, 0.22);
+  color: #fecaca;
+}
+
+[data-theme="dark"] .payment-badge.payment-refunded {
+  background: rgba(219, 234, 254, 0.18);
+  color: #bfdbfe;
 }
 
 table.admin-table {
@@ -3059,6 +3088,83 @@ select:-webkit-autofill {
 
 .theme-switcher-btn:hover i {
   transform: rotate(180deg);
+}
+
+/* Orders-style table (shared: orders page, abandoned_carts page) – same as orders.php */
+.orders-table-wrapper {
+  margin-top: 1rem;
+  border-radius: 6px;
+  overflow: visible;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-card);
+}
+
+.orders-table-wrapper .table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.orders-table th,
+.orders-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-primary);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.orders-table thead th {
+  background: var(--bg-secondary);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.orders-table tbody tr:hover td {
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.orders-table td.amount-cell,
+.orders-table th.amount-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.orders-table td.total-column,
+.orders-table th.total-column,
+.orders-table th .table-heading-label {
+  white-space: nowrap;
+}
+
+.orders-table td.total-column {
+  min-width: 140px;
+}
+
+.table-heading-label {
+  white-space: nowrap;
+}
+
+.table-customer-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 0.125rem;
+}
+
+.table-customer-email,
+.table-customer-phone,
+.table-order-date {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 /* ========================================

@@ -2676,12 +2676,11 @@ document.getElementById('updateStatusModal').addEventListener('click', function(
 }
 
 .status-badge, .payment-badge {
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    font-size: 0.8125rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: capitalize;
 }
 
 .status-badge.status-pending {

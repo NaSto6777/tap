@@ -211,6 +211,28 @@ try {
     $pageEngagement = [];
 }
 
+// Orders by Gouvernorat (most ordered first) – requires shipping_governorate column
+$ordersByGouvernorat = [];
+try {
+    $conn->query("SELECT shipping_governorate FROM orders LIMIT 1");
+    $govQuery = "SELECT shipping_governorate AS gouvernorat, COUNT(*) AS order_count
+                 FROM orders
+                 WHERE store_id = ? AND shipping_governorate IS NOT NULL AND TRIM(shipping_governorate) != ''
+                 GROUP BY shipping_governorate
+                 ORDER BY order_count DESC
+                 LIMIT 24";
+    $govStmt = $conn->prepare($govQuery);
+    $govStmt->execute([$store_id]);
+    foreach ($govStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $ordersByGouvernorat[] = [
+            'gouvernorat' => $row['gouvernorat'] ?? '',
+            'order_count' => (int)($row['order_count'] ?? 0),
+        ];
+    }
+} catch (Exception $e) {
+    $ordersByGouvernorat = [];
+}
+
 // Abandoned carts
 $abandonedCarts = [];
 try {
@@ -268,66 +290,11 @@ try {
     $recentOrders = [];
 }
 ?>
+<section class="analytics-section">
+  <?php include __DIR__ . '/../analytics/widgets/overview_cards.php'; ?>
+</section>
+
 <div class="analytics-dashboard-page" data-currency-symbol="<?php echo htmlspecialchars($currency_symbol); ?>" data-currency-position="<?php echo htmlspecialchars($currency_position); ?>">
-  <section class="analytics-hero">
-    <div class="analytics-hero-headline">
-      <h1><?php echo $t('commerce_analytics', 'Commerce Analytics'); ?></h1>
-      <p><?php echo $t('analytics_description', 'High-impact insights to help you convert more shoppers and grow revenue.'); ?></p>
-      <div class="analytics-hero-meta">
-        <span class="meta-chip"><?php echo $t('last_days', 'Last'); ?> <?php echo $daysRange; ?> <?php echo $t('days', 'days'); ?></span>
-        <span class="meta-chip"><?php echo $periodStart; ?> &ndash; <?php echo $periodEnd; ?></span>
-      </div>
-    </div>
-    <div class="stats-grid" style="margin-bottom: 0;">
-      <div class="stat-card">
-        <div class="stat-card-body">
-          <div class="stat-card-row">
-            <div class="stat-card-main">
-              <h5 class="stat-card-label"><?php echo $t('revenue', 'Revenue'); ?></h5>
-              <span class="stat-card-value"><?php echo $currency_position === 'left' ? $currency_symbol . number_format($overviewStats['total_revenue'], 2) : number_format($overviewStats['total_revenue'], 2) . ' ' . $currency_symbol; ?></span>
-              <p class="stat-card-footer neutral"><?php echo $t('last_days', 'Last'); ?> <?php echo $daysRange; ?> <?php echo $t('days', 'days'); ?></p>
-            </div>
-            <div class="stat-card-icon-wrap">
-              <div class="stat-card-icon primary"><i class="fas fa-dollar-sign"></i></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card-body">
-          <div class="stat-card-row">
-            <div class="stat-card-main">
-              <h5 class="stat-card-label"><?php echo $t('conversion_rate', 'Conversion Rate'); ?></h5>
-              <span class="stat-card-value"><?php echo number_format($overviewStats['conversion_rate'], 2); ?>%</span>
-              <p class="stat-card-footer neutral"><?php echo $t('visitors_to_orders', 'Visitors to orders'); ?></p>
-            </div>
-            <div class="stat-card-icon-wrap">
-              <div class="stat-card-icon success"><i class="fas fa-percent"></i></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card-body">
-          <div class="stat-card-row">
-            <div class="stat-card-main">
-              <h5 class="stat-card-label"><?php echo $t('active_orders', 'Active Orders'); ?></h5>
-              <span class="stat-card-value"><?php echo number_format($overviewStats['total_orders']); ?></span>
-              <p class="stat-card-footer positive"><?php echo $t('orders', 'Orders'); ?></p>
-            </div>
-            <div class="stat-card-icon-wrap">
-              <div class="stat-card-icon info"><i class="fas fa-shopping-cart"></i></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="analytics-section">
-    <?php include __DIR__ . '/../analytics/widgets/overview_cards.php'; ?>
-  </section>
-
   <section class="analytics-section analytics-charts-grid">
     <?php include __DIR__ . '/../analytics/widgets/conversion_funnel.php'; ?>
     <?php include __DIR__ . '/../analytics/widgets/sales_trends.php'; ?>
@@ -336,6 +303,54 @@ try {
   <section class="analytics-section analytics-table-grid">
     <?php include __DIR__ . '/../analytics/widgets/top_products.php'; ?>
     <?php include __DIR__ . '/../analytics/widgets/top_search_terms.php'; ?>
+  </section>
+
+  <section class="analytics-section analytics-region-section">
+    <div class="analytics-region-grid">
+      <div class="data-card">
+        <div class="data-card-header">
+          <h3><?php echo $t('delivery_by_region', 'Delivery by region'); ?></h3>
+        </div>
+        <div class="data-card-body" style="padding: 0.75rem;">
+          <?php include __DIR__ . '/delivery_by_region_map.php'; ?>
+        </div>
+      </div>
+      <div class="data-card">
+        <div class="data-card-header">
+          <h3><?php echo $t('orders_by_region', 'Orders by Gouvernorat'); ?></h3>
+        </div>
+        <div class="data-card-body">
+          <div class="table-responsive">
+            <table class="analytics-table">
+              <thead>
+                <tr>
+                  <th><?php echo $t('rank', 'Rank'); ?></th>
+                  <th><?php echo $t('gouvernorat', 'Gouvernorat'); ?></th>
+                  <th><?php echo $t('orders', 'Orders'); ?></th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php if (!empty($ordersByGouvernorat)): ?>
+                  <?php foreach ($ordersByGouvernorat as $idx => $row): ?>
+                    <tr>
+                      <td>
+                        <span class="rank-icon rank-top-<?php echo ($idx < 3) ? ($idx + 1) : 'default'; ?>"><?php echo $idx + 1; ?></span>
+                      </td>
+                      <td><?php echo htmlspecialchars($row['gouvernorat']); ?></td>
+                      <td><?php echo (int)$row['order_count']; ?></td>
+                    </tr>
+                  <?php endforeach; ?>
+                <?php else: ?>
+                  <tr>
+                    <td colspan="3" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;"><?php echo $t('no_orders_by_region', 'No orders with region data yet.'); ?></td>
+                  </tr>
+                <?php endif; ?>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section class="analytics-section">

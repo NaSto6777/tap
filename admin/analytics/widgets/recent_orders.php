@@ -45,8 +45,10 @@ function st_badge($status) {
         <span class="stat-value">--</span>
       </div>
     </div>
-    <div class="table-responsive" id="recentOrdersContainer">
-      <div class="empty-state"><?php echo $t('loading_recent_orders', 'Loading recent orders...'); ?></div>
+    <div class="orders-table-wrapper">
+      <div class="table-responsive" id="recentOrdersContainer">
+        <div class="empty-state"><?php echo $t('loading_recent_orders', 'Loading recent orders...'); ?></div>
+      </div>
     </div>
   </div>
 </div>

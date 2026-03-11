@@ -788,6 +788,7 @@ document.addEventListener('DOMContentLoaded', function() {
     margin-bottom: 2rem;
 }
 
+
 /* Modern Card */
 .modern-card {
     background: var(--bg-card);
@@ -962,24 +963,44 @@ document.addEventListener('DOMContentLoaded', function() {
     text-transform: capitalize;
 }
 .recent-order-status.status-pending {
-    background: var(--color-warning-light, rgba(245, 158, 11, 0.15));
-    color: var(--color-warning-dark, #b45309);
+    background: var(--color-warning-light);
+    color: #92400e;
 }
 .recent-order-status.status-processing {
-    background: var(--color-info-light, rgba(59, 130, 246, 0.15));
-    color: var(--color-info-dark, #1d4ed8);
+    background: var(--color-info-light);
+    color: #1e40af;
 }
 .recent-order-status.status-shipped {
-    background: var(--color-primary-light, rgba(99, 102, 241, 0.15));
-    color: var(--color-primary-dark, #4338ca);
+    background: var(--color-primary-light);
+    color: #3730a3;
 }
 .recent-order-status.status-delivered {
-    background: var(--color-success-light, rgba(16, 185, 129, 0.15));
-    color: var(--color-success-dark, #047857);
+    background: var(--color-success-light);
+    color: #166534;
 }
 .recent-order-status.status-cancelled {
-    background: var(--color-error-light, rgba(239, 68, 68, 0.15));
-    color: var(--color-error-dark, #b91c1c);
+    background: var(--color-error-light);
+    color: #991b1b;
+}
+[data-theme="dark"] .recent-order-status.status-pending {
+    background: rgba(250, 204, 21, 0.18);
+    color: #facc15;
+}
+[data-theme="dark"] .recent-order-status.status-processing {
+    background: rgba(56, 189, 248, 0.18);
+    color: #7dd3fc;
+}
+[data-theme="dark"] .recent-order-status.status-shipped {
+    background: rgba(129, 140, 248, 0.22);
+    color: #c7d2fe;
+}
+[data-theme="dark"] .recent-order-status.status-delivered {
+    background: rgba(34, 197, 94, 0.22);
+    color: #bbf7d0;
+}
+[data-theme="dark"] .recent-order-status.status-cancelled {
+    background: rgba(248, 113, 113, 0.22);
+    color: #fecaca;
 }
 .recent-orders-empty {
     text-align: center;
@@ -1051,35 +1072,36 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .status-badge {
-    padding: 0.375rem 0.75rem;
-    border-radius: 6px;
-    font-size: 0.8125rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
     font-weight: 600;
+    text-transform: capitalize;
 }
 
 .status-badge.status-pending {
     background: var(--color-warning-light);
-    color: var(--color-warning);
+    color: #92400e;
 }
 
 .status-badge.status-processing {
     background: var(--color-info-light);
-    color: var(--color-info);
+    color: #1e40af;
 }
 
 .status-badge.status-shipped {
-    background: var(--color-primary-db-light);
-    color: var(--color-primary-db);
+    background: var(--color-primary-light);
+    color: #3730a3;
 }
 
 .status-badge.status-delivered {
     background: var(--color-success-light);
-    color: var(--color-success);
+    color: #166534;
 }
 
 .status-badge.status-cancelled {
     background: var(--color-error-light);
-    color: var(--color-error);
+    color: #991b1b;
 }
 
 .date {

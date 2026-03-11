@@ -92,59 +92,63 @@ foreach ($abandonedRows as $cart) {
         </div>
     </div>
     <?php else: ?>
-    <div class="table-responsive">
-        <table class="modern-table">
-            <thead>
-                <tr>
-                    <th><?php echo $t('customer', 'Customer'); ?></th>
-                    <th><?php echo $t('contact', 'Contact'); ?></th>
-                    <th><?php echo $t('items'); ?></th>
-                    <th><?php echo $t('total'); ?></th>
-                    <th><?php echo $t('date'); ?></th>
-                    <th><?php echo $t('actions'); ?></th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($carts as $c): ?>
-                <tr>
-                    <td><strong><?php echo htmlspecialchars($c['name']); ?></strong></td>
-                    <td>
-                        <?php if ($c['email']): ?>
-                            <span class="d-block"><i class="fas fa-envelope text-muted"></i> <?php echo htmlspecialchars($c['email']); ?></span>
-                        <?php endif; ?>
-                        <?php if ($c['phone']): ?>
-                            <span class="d-block"><i class="fas fa-phone text-muted"></i> <?php echo htmlspecialchars($c['phone']); ?></span>
-                        <?php endif; ?>
-                        <?php if (!$c['email'] && !$c['phone']): ?>
-                            <span class="text-muted"><?php echo $t('no_contact', 'No contact'); ?></span>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <?php if (!empty($c['items_list'])): ?>
-                            <small><?php echo htmlspecialchars(implode(', ', array_slice($c['items_list'], 0, 3))); ?><?php echo count($c['items_list']) > 3 ? '...' : ''; ?></small>
-                        <?php else: ?>
-                            <?php echo (int)$c['items']; ?> <?php echo $t('items'); ?>
-                        <?php endif; ?>
-                    </td>
-                    <td><strong><?php echo $currency_position === 'left' ? $currency_symbol . number_format($c['cart_value'], 2) : number_format($c['cart_value'], 2) . ' ' . $currency_symbol; ?></strong></td>
-                    <td><?php echo htmlspecialchars($c['date']); ?></td>
-                    <td>
-                        <?php if ($c['wa_link']): ?>
-                            <a href="<?php echo htmlspecialchars($c['wa_link']); ?>" target="_blank" rel="noopener" class="btn btn-success btn-sm">
-                                <i class="fab fa-whatsapp"></i> <?php echo $t('contact_whatsapp', 'WhatsApp'); ?>
-                            </a>
-                        <?php elseif ($c['email']): ?>
-                            <a href="mailto:<?php echo htmlspecialchars($c['email']); ?>" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-envelope"></i> <?php echo $t('email'); ?>
-                            </a>
-                        <?php else: ?>
-                            <span class="text-muted"><?php echo $t('add_contact_to_enable', 'Add contact to enable'); ?></span>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+    <div class="orders-table-wrapper">
+        <div class="table-responsive">
+            <table class="orders-table">
+                <thead>
+                    <tr>
+                        <th><span class="table-heading-label"><?php echo $t('customer', 'Customer'); ?></span></th>
+                        <th><span class="table-heading-label"><?php echo $t('contact', 'Contact'); ?></span></th>
+                        <th><span class="table-heading-label"><?php echo $t('items'); ?></span></th>
+                        <th class="total-column amount-cell"><span class="table-heading-label"><?php echo $t('total'); ?></span></th>
+                        <th><span class="table-heading-label"><?php echo $t('date'); ?></span></th>
+                        <th class="total-column"><span class="table-heading-label"><?php echo $t('actions'); ?></span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($carts as $c): ?>
+                    <tr>
+                        <td><span class="table-customer-name"><?php echo htmlspecialchars($c['name']); ?></span></td>
+                        <td>
+                            <?php if ($c['email']): ?>
+                                <span class="table-customer-email d-block"><i class="fas fa-envelope text-muted"></i> <?php echo htmlspecialchars($c['email']); ?></span>
+                            <?php endif; ?>
+                            <?php if ($c['phone']): ?>
+                                <span class="table-customer-phone d-block"><i class="fas fa-phone text-muted"></i> <?php echo htmlspecialchars($c['phone']); ?></span>
+                            <?php endif; ?>
+                            <?php if (!$c['email'] && !$c['phone']): ?>
+                                <span class="text-muted"><?php echo $t('no_contact', 'No contact'); ?></span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if (!empty($c['items_list'])): ?>
+                                <span class="table-customer-email"><small><?php echo htmlspecialchars(implode(', ', array_slice($c['items_list'], 0, 3))); ?><?php echo count($c['items_list']) > 3 ? '...' : ''; ?></small></span>
+                            <?php else: ?>
+                                <?php echo (int)$c['items']; ?> <?php echo $t('items'); ?>
+                            <?php endif; ?>
+                        </td>
+                        <td class="total-column amount-cell"><strong><?php echo $currency_position === 'left' ? $currency_symbol . number_format($c['cart_value'], 2) : number_format($c['cart_value'], 2) . ' ' . $currency_symbol; ?></strong></td>
+                        <td><span class="table-order-date"><?php echo htmlspecialchars($c['date']); ?></span></td>
+                        <td class="total-column">
+                            <div class="table-actions">
+                                <?php if ($c['wa_link']): ?>
+                                    <a href="<?php echo htmlspecialchars($c['wa_link']); ?>" target="_blank" rel="noopener" class="btn btn-success btn-sm">
+                                        <i class="fab fa-whatsapp"></i> <?php echo $t('contact_whatsapp', 'WhatsApp'); ?>
+                                    </a>
+                                <?php elseif ($c['email']): ?>
+                                    <a href="mailto:<?php echo htmlspecialchars($c['email']); ?>" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-envelope"></i> <?php echo $t('email'); ?>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="text-muted"><?php echo $t('add_contact_to_enable', 'Add contact to enable'); ?></span>
+                                <?php endif; ?>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
     <?php endif; ?>
 </div>

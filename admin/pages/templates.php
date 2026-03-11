@@ -526,10 +526,11 @@ setTimeout(() => {
 }
 
 .status-badge {
-    padding: 0.375rem 0.75rem;
-    border-radius: 6px;
-    font-size: 0.8125rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
     font-weight: 600;
+    text-transform: capitalize;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;

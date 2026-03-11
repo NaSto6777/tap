@@ -47,7 +47,50 @@ try {
             case 'get_recent_orders':
                 $orders = $analytics->getRecentOrders(6);
 
-                $normalized = array_map(function($order) {
+                // Attach a compact products summary per order (first 2 items + " +N")
+                $productsByOrderId = [];
+                try {
+                    $orderIds = array_values(array_filter(array_map(function($o) {
+                        return isset($o['id']) ? (int) $o['id'] : 0;
+                    }, $orders)));
+                    if (!empty($orderIds)) {
+                        $placeholders = implode(',', array_fill(0, count($orderIds), '?'));
+                        $itemsStmt = $analytics->getConnection()->prepare(
+                            "SELECT order_id, product_name, quantity
+                             FROM order_items
+                             WHERE order_id IN ($placeholders)
+                             ORDER BY id ASC"
+                        );
+                        $itemsStmt->execute($orderIds);
+                        while ($row = $itemsStmt->fetch(PDO::FETCH_ASSOC)) {
+                            $oid = (int) ($row['order_id'] ?? 0);
+                            if (!$oid) continue;
+                            if (!isset($productsByOrderId[$oid])) $productsByOrderId[$oid] = [];
+                            $name = trim((string)($row['product_name'] ?? ''));
+                            $qty  = (int)($row['quantity'] ?? 0);
+                            if ($name === '') $name = '—';
+                            $productsByOrderId[$oid][] = ['name' => $name, 'qty' => max(1, $qty)];
+                        }
+                    }
+                } catch (Exception $e) {
+                    // Best-effort; keep endpoint functional even if schema differs
+                    $productsByOrderId = [];
+                }
+
+                $normalized = array_map(function($order) use ($productsByOrderId) {
+                    $oid = isset($order['id']) ? (int) $order['id'] : 0;
+                    $items = $oid && isset($productsByOrderId[$oid]) ? $productsByOrderId[$oid] : [];
+                    $visible = array_slice($items, 0, 2);
+                    $extraCount = max(0, count($items) - count($visible));
+                    $productParts = array_map(function($it) {
+                        $n = (string)($it['name'] ?? '—');
+                        $q = (int)($it['qty'] ?? 1);
+                        return $n . ' × ' . max(1, $q);
+                    }, $visible);
+                    $productsSummary = trim(implode(', ', $productParts));
+                    if ($extraCount > 0) {
+                        $productsSummary .= ' +' . $extraCount;
+                    }
                     return [
                         'id' => $order['id'],
                         'order_number' => $order['order_number'],
@@ -55,7 +98,8 @@ try {
                         'customer_email' => $order['customer_email'],
                         'total' => (float) $order['total_amount'],
                         'status' => $order['payment_status'] ?? $order['status'],
-                        'date' => $order['created_at'] ? date('Y-m-d', strtotime($order['created_at'])) : null
+                        'date' => $order['created_at'] ? date('Y-m-d', strtotime($order['created_at'])) : null,
+                        'products' => $productsSummary
                     ];
                 }, $orders);
 

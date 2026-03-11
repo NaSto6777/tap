@@ -12,8 +12,16 @@
 
 .admin-shell .sidebar-slim.sidebar {
   width: var(--sidebar-width);
-  overflow-y: scroll;
-  scrollbar-gutter: stable;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.admin-shell .sidebar-slim.sidebar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .admin-shell .sidebar-slim.collapsed {
