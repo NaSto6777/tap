@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         Language::setLanguage($updated_settings['admin_language']);
     }
     
-    header('Location: ?page=settings&success=' . urlencode($t('saved_successfully', 'Settings updated successfully!')));
+    header('Location: ?content=1&page=settings&success=' . urlencode($t('saved_successfully', 'Settings updated successfully!')));
     exit;
 }
 
@@ -171,79 +171,43 @@ $currency_position = $current_settings['currency_position'] ?? 'left';
     
     <form method="POST" id="settingsForm" enctype="multipart/form-data">
         <?php echo CsrfHelper::getTokenField(); ?>
-        <div class="settings-topbar">
-            <div class="mobile-nav-toggle">
-                <button type="button" id="settingsNavToggle" class="nav-toggle-btn">
-                    <i class="fas fa-bars"></i>
-                    <span><?php echo $t('settings_menu', 'Settings Menu'); ?></span>
-                    <i class="fas fa-chevron-down toggle-icon"></i>
-                </button>
-            </div>
-            <div class="settings-topbar-row">
+        <!-- Sticky Header with ScrollSpy nav + Save -->
+        <header class="settings-sticky-header" id="settingsStickyHeader">
+            <nav class="settings-sticky-nav" aria-label="<?php echo $t('settings_menu', 'Settings Menu'); ?>">
+                <div class="mobile-nav-toggle">
+                    <button type="button" id="settingsNavToggle" class="nav-toggle-btn" aria-expanded="false" aria-controls="settingsNavContainer">
+                        <i class="fas fa-bars"></i>
+                        <span><?php echo $t('settings_menu', 'Settings Menu'); ?></span>
+                        <i class="fas fa-chevron-down toggle-icon"></i>
+                    </button>
+                </div>
                 <div id="settingsNavContainer" class="settings-nav-container">
-                    <div id="settings-nav" class="settings-nav-unique">
-                    <button type="button" class="settings-nav-item active" data-tab="general" title="<?php echo $t('basic_store_info', 'Basic store information'); ?>">
-                        <i class="fas fa-info-circle"></i>
-                        <span><?php echo $t('general'); ?></span>
-                        <small class="nav-hint"><?php echo $t('store_basics', 'Store basics'); ?></small>
-                        <span class="config-badge">✓</span>
-                    </button>
-                    <button type="button" class="settings-nav-item" data-tab="contact" title="<?php echo $t('contact_business_details', 'Contact information and business details'); ?>">
-                        <i class="fas fa-address-book"></i>
-                        <span><?php echo $t('contact_info', 'Contact Info'); ?></span>
-                        <small class="nav-hint"><?php echo $t('business_details', 'Business details'); ?></small>
-                        <span class="config-badge">✓</span>
-                    </button>
-                    <button type="button" class="settings-nav-item" data-tab="ecommerce" title="<?php echo $t('payment_ecommerce_settings', 'Payment methods and ecommerce settings'); ?>">
-                        <i class="fas fa-shopping-cart"></i>
-                        <span><?php echo $t('ecommerce'); ?></span>
-                        <small class="nav-hint"><?php echo $t('payments_pricing', 'Payments & pricing'); ?></small>
-                        <span class="config-badge">✓</span>
-                    </button>
-                    <button type="button" class="settings-nav-item" data-tab="appearance" title="<?php echo $t('visual_customization', 'Colors, logo, and visual customization'); ?>">
-                        <i class="fas fa-palette"></i>
-                        <span><?php echo $t('appearance'); ?></span>
-                        <small class="nav-hint"><?php echo $t('brand_colors', 'Brand & colors'); ?></small>
-                        <span class="config-badge">✓</span>
-                    </button>
-                    <button type="button" class="settings-nav-item" data-tab="social" title="<?php echo $t('social_media_profiles', 'Social media links and profiles'); ?>">
-                        <i class="fas fa-share-alt"></i>
-                        <span><?php echo $t('social_media', 'Social Media'); ?></span>
-                        <small class="nav-hint"><?php echo $t('social_profiles', 'Social profiles'); ?></small>
-                        <span class="config-badge">✓</span>
-                    </button>
-                    <button type="button" class="settings-nav-item" data-tab="seo" title="<?php echo $t('seo_settings', 'Search engine optimization settings'); ?>">
-                        <i class="fas fa-search"></i>
-                        <span><?php echo $t('seo'); ?></span>
-                        <small class="nav-hint"><?php echo $t('search_optimization', 'Search optimization'); ?></small>
-                        <span class="config-badge">✓</span>
-                    </button>
-                    <button type="button" class="settings-nav-item" data-tab="content" title="<?php echo $t('page_content_hero', 'Page content and hero sections'); ?>">
-                        <i class="fas fa-file-alt"></i>
-                        <span><?php echo $t('content'); ?></span>
-                        <small class="nav-hint"><?php echo $t('page_content', 'Page content'); ?></small>
-                        <span class="config-badge">✓</span>
-                    </button>
-                    <button type="button" class="settings-nav-item" data-tab="analytics" title="<?php echo $t('analytics_tracking_settings', 'Analytics and tracking settings'); ?>">
-                        <i class="fas fa-chart-bar"></i>
-                        <span><?php echo $t('analytics'); ?></span>
-                        <small class="nav-hint"><?php echo $t('tracking_debug', 'Tracking & debug'); ?></small>
-                        <span class="config-badge">✓</span>
+                    <div id="settings-nav" class="settings-nav-links">
+                        <a href="#general" class="settings-nav-link active" data-section="general"><?php echo $t('general'); ?></a>
+                        <a href="#contact" class="settings-nav-link" data-section="contact"><?php echo $t('contact_info', 'Contact Info'); ?></a>
+                        <a href="#ecommerce" class="settings-nav-link" data-section="ecommerce"><?php echo $t('ecommerce'); ?></a>
+                        <a href="#appearance" class="settings-nav-link" data-section="appearance"><?php echo $t('appearance'); ?></a>
+                        <a href="#social" class="settings-nav-link" data-section="social"><?php echo $t('social_media', 'Social Media'); ?></a>
+                        <a href="#seo" class="settings-nav-link" data-section="seo"><?php echo $t('seo'); ?></a>
+                        <a href="#content" class="settings-nav-link" data-section="content"><?php echo $t('content'); ?></a>
+                        <a href="#analytics" class="settings-nav-link" data-section="analytics"><?php echo $t('analytics'); ?></a>
+                    </div>
+                </div>
+                <div class="settings-sticky-actions">
+                    <button type="submit" class="btn-save btn-save-inline">
+                        <i class="fas fa-save"></i>
+                        <?php echo $t('save_all_settings', 'Save All Settings'); ?>
                     </button>
                 </div>
-                </div>
-                <button type="submit" class="btn-save btn-save-inline">
-                    <i class="fas fa-save"></i>
-                    <?php echo $t('save_all_settings', 'Save All Settings'); ?>
-                </button>
-            </div>
-        </div>
+            </nav>
+        </header>
 
         <div class="settings-layout">
-            <!-- Settings Content -->
-            <div class="settings-content">
+            <!-- Single scrollable page: all sections visible -->
+            <div class="settings-content settings-content-single">
         <!-- General Settings -->
-                <div class="settings-pane active" id="pane-general">
+                <section id="general" class="settings-section">
+                    <div class="settings-section-card">
                     <div class="pane-header">
                         <h2><?php echo $t('general_settings', 'General Settings'); ?></h2>
                         <p><?php echo $t('general_settings_desc', 'Configure your store\'s basic information like name, logo, and contact details. This information will be displayed across your website.'); ?></p>
@@ -290,11 +254,13 @@ $currency_position = $current_settings['currency_position'] ?? 'left';
                             <?php endif; ?>
                     </div>
                         <input type="hidden" name="logo" value="<?php echo htmlspecialchars($current_settings['logo'] ?? ''); ?>">
-                </div>
-            </div>
-            
+                    </div>
+                    </div>
+                </section>
+
                 <!-- Contact Info -->
-                <div class="settings-pane" id="pane-contact">
+                <section id="contact" class="settings-section">
+                    <div class="settings-section-card">
                     <div class="pane-header">
                         <h2><?php echo $t('contact_information', 'Contact Information'); ?></h2>
                         <p><?php echo $t('how_customers_reach', 'How customers can reach you'); ?></p>
@@ -318,11 +284,13 @@ $currency_position = $current_settings['currency_position'] ?? 'left';
                         <label><?php echo $t('business_address', 'Business Address'); ?></label>
                         <textarea name="contact_address" class="form-textarea" rows="3" 
                                   placeholder="123 Main St, City, State 12345"><?php echo htmlspecialchars($current_settings['contact_address'] ?? ''); ?></textarea>
-                </div>
-            </div>
-            
+                    </div>
+                    </div>
+                </section>
+
             <!-- Ecommerce Settings -->
-                <div class="settings-pane" id="pane-ecommerce">
+                <section id="ecommerce" class="settings-section">
+                    <div class="settings-section-card">
                     <div class="pane-header">
                         <h2><?php echo $t('ecommerce_settings', 'Ecommerce Settings'); ?></h2>
                         <p><?php echo $t('configure_pricing_payment', 'Configure pricing and payment options'); ?></p>
@@ -575,11 +543,13 @@ $currency_position = $current_settings['currency_position'] ?? 'left';
                                    <?php echo ($current_settings['categories_enabled'] ?? '1') == '1' ? 'checked' : ''; ?>>
                             <span><?php echo $t('enable_product_categories', 'Enable Product Categories'); ?></span>
                         </label>
-            </div>
-        </div>
-        
+                    </div>
+                    </div>
+                </section>
+
                 <!-- Appearance -->
-                <div class="settings-pane" id="pane-appearance">
+                <section id="appearance" class="settings-section">
+                    <div class="settings-section-card">
                     <div class="pane-header">
                         <h2><?php echo $t('appearance'); ?></h2>
                         <p><?php echo $t('customize_look_feel', 'Customize your store\'s look and feel'); ?></p>
@@ -615,10 +585,12 @@ $currency_position = $current_settings['currency_position'] ?? 'left';
                             <option value="hamburger_menu" <?php echo ($current_settings['menu_type'] ?? '') == 'hamburger_menu' ? 'selected' : ''; ?>><?php echo $t('hamburger_menu_mobile', 'Hamburger Menu (Mobile Style)'); ?></option>
                         </select>
                     </div>
-            </div>
-            
+                    </div>
+                </section>
+
             <!-- Social Media -->
-                <div class="settings-pane" id="pane-social">
+                <section id="social" class="settings-section">
+                    <div class="settings-section-card">
                     <div class="pane-header">
                         <h2><?php echo $t('social_media_links', 'Social Media Links'); ?></h2>
                         <p><?php echo $t('connect_social_profiles', 'Connect your social media profiles'); ?></p>
@@ -657,11 +629,13 @@ $currency_position = $current_settings['currency_position'] ?? 'left';
                         <input type="url" name="youtube_url" class="form-input" 
                                value="<?php echo htmlspecialchars($current_settings['youtube_url'] ?? ''); ?>"
                                placeholder="https://youtube.com/@yourchannel">
-                </div>
-            </div>
-            
+                    </div>
+                    </div>
+                </section>
+
             <!-- SEO Settings -->
-                <div class="settings-pane" id="pane-seo">
+                <section id="seo" class="settings-section">
+                    <div class="settings-section-card">
                     <div class="pane-header">
                         <h2><?php echo $t('seo_settings', 'SEO Settings'); ?></h2>
                         <p><?php echo $t('seo_options', 'Search engine optimization options'); ?></p>
@@ -689,11 +663,13 @@ $currency_position = $current_settings['currency_position'] ?? 'left';
                             <i class="fas fa-info-circle"></i>
                             <?php echo $t('auto_seo_hint', 'When enabled, SEO section will be hidden in product forms and SEO data will be auto-generated from product name and description'); ?>
                         </small>
-                </div>
-            </div>
-            
+                    </div>
+                    </div>
+                </section>
+
     <!-- Content Settings -->
-                <div class="settings-pane" id="pane-content">
+                <section id="content" class="settings-section">
+                    <div class="settings-section-card">
                     <div class="pane-header">
                         <h2><?php echo $t('content_settings', 'Content Settings'); ?></h2>
                         <p><?php echo $t('manage_content_pages', 'Manage your store\'s content and pages'); ?></p>
@@ -855,13 +831,15 @@ $currency_position = $current_settings['currency_position'] ?? 'left';
                             <?php endif; ?>
                     </div>
                         <input type="hidden" name="hero_images" value="<?php echo htmlspecialchars($current_settings['hero_images'] ?? '[]'); ?>">
-                </div>
-            </div>
-            
+                    </div>
+                    </div>
+                </section>
+
             <!-- Analytics Settings -->
-            <div class="settings-pane" id="pane-analytics">
-                <div class="pane-header">
-                    <h2><?php echo $t('analytics_settings', 'Analytics Settings'); ?></h2>
+                <section id="analytics" class="settings-section">
+                    <div class="settings-section-card">
+                    <div class="pane-header">
+                        <h2><?php echo $t('analytics_settings', 'Analytics Settings'); ?></h2>
                     <p><?php echo $t('configure_analytics_tracking', 'Configure analytics tracking and debugging options'); ?></p>
                 </div>
                 
@@ -941,10 +919,11 @@ $currency_position = $current_settings['currency_position'] ?? 'left';
                         </ul>
                     </div>
                 </div>
+                    </div>
+                </section>
             </div>
         </div>
-    </div>
-</form>
+    </form>
 
 </div>
 
@@ -1006,52 +985,65 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Tab Navigation
-document.querySelectorAll('#settings-nav .settings-nav-item').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const tab = this.dataset.tab;
-        
-        // Update active nav item
-        document.querySelectorAll('#settings-nav .settings-nav-item').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        
-        // Update active pane
-        document.querySelectorAll('.settings-pane').forEach(pane => pane.classList.remove('active'));
-        document.getElementById('pane-' + tab).classList.add('active');
-        
-        // Close mobile sidebar after selection
+// ScrollSpy: highlight nav link for the section currently in view
+(function() {
+    var navLinks = document.querySelectorAll('.settings-nav-link[data-section]');
+    var sectionIds = Array.from(navLinks).map(function(link) { return link.getAttribute('data-section'); });
+
+    function setActive(sectionId) {
+        navLinks.forEach(function(link) {
+            if (link.getAttribute('data-section') === sectionId) {
+                link.classList.add('active');
+                link.setAttribute('aria-current', 'location');
+            } else {
+                link.classList.remove('active');
+                link.removeAttribute('aria-current');
+            }
+        });
+    }
+
+    function updateActiveFromScroll() {
+        var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        var headerOffset = 140;
+        var current = sectionIds[0];
+        sectionIds.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            if (el.offsetTop <= scrollTop + headerOffset) current = id;
+        });
+        setActive(current);
+    }
+
+    window.addEventListener('scroll', function() {
+        requestAnimationFrame(updateActiveFromScroll);
+    }, { passive: true });
+    updateActiveFromScroll();
+
+    var hash = window.location.hash.slice(1);
+    if (hash && document.getElementById(hash)) setActive(hash);
+})();
+
+// Smooth scroll + close mobile nav on link click
+document.querySelectorAll('.settings-nav-link[href^="#"]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+        var id = this.getAttribute('href').slice(1);
+        if (!id) return;
+        var el = document.getElementById(id);
+        if (el) {
+            e.preventDefault();
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
         if (window.innerWidth <= 768) {
-            const navContainer = document.getElementById('settingsNavContainer');
-            const toggleIcon = document.querySelector('.toggle-icon');
-            if (navContainer && toggleIcon) {
-                navContainer.classList.remove('mobile-open');
-                toggleIcon.classList.remove('rotated');
+            var container = document.getElementById('settingsNavContainer');
+            var icon = document.querySelector('#settingsNavToggle .toggle-icon');
+            if (container && icon) {
+                container.classList.remove('mobile-open');
+                icon.classList.remove('rotated');
+                document.getElementById('settingsNavToggle').setAttribute('aria-expanded', 'false');
             }
         }
     });
 });
-
-// Update configuration badges based on filled fields
-function updateConfigBadges() {
-    document.querySelectorAll('.settings-nav-item').forEach(btn => {
-        const tabId = btn.dataset.tab;
-        const pane = document.getElementById('pane-' + tabId);
-        const badge = btn.querySelector('.config-badge');
-        
-        if (pane && badge) {
-            const inputs = pane.querySelectorAll('input[required], input[type="text"], input[type="email"], textarea');
-            const filled = Array.from(inputs).filter(inp => inp.value.trim() !== '').length;
-            
-            if (filled > 0) {
-                badge.classList.add('configured');
-                badge.textContent = '✓';
-            } else {
-                badge.classList.remove('configured');
-                badge.textContent = '○';
-            }
-        }
-    });
-}
 
 // Real-time validation feedback
 document.querySelectorAll('input[required], input[type="email"]').forEach(input => {
@@ -1067,7 +1059,6 @@ document.querySelectorAll('input[required], input[type="email"]').forEach(input 
             this.classList.add('success');
             hideError(this);
         }
-        updateConfigBadges();
     });
     
     input.addEventListener('input', function() {
@@ -1098,11 +1089,6 @@ function hideError(input) {
         existingError.remove();
     }
 }
-
-// Initialize badges on page load
-document.addEventListener('DOMContentLoaded', function() {
-    updateConfigBadges();
-});
 
 // Color picker sync
 document.getElementById('primaryColor').addEventListener('input', function() {
@@ -1322,66 +1308,152 @@ document.addEventListener('DOMContentLoaded', function() {
     transform: translateY(-2px);
 }
 
-/* Settings Layout */
-.settings-topbar {
-    display: grid;
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
+/* Smooth scrolling for anchor links */
+html { scroll-behavior: smooth; }
 
-.settings-topbar-row {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
-
-.settings-nav-container {
-    flex: 1;
-    background: var(--bg-card);
-    border-radius: 6px;
-    padding: 0.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    overflow-x: auto;
-    position: relative;
-}
-
-.settings-nav-container::-webkit-scrollbar {
-    height: 6px;
-}
-
-.settings-nav-container::-webkit-scrollbar-thumb {
-    background: var(--border-primary);
-    border-radius: 6px;
-}
-
+/* Settings Layout - Single scrollable page */
 .settings-layout {
     display: block;
     margin-bottom: 2rem;
     position: relative;
 }
 
+/* Sticky Header - Polaris-inspired clean bar */
+.settings-sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    margin-inline: -1rem;
+    padding-inline: 1rem;
+    padding-block: 0.75rem 0.875rem;
+    margin-bottom: 1.5rem;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-primary);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .settings-sticky-header,
+.admin-shell[data-theme="dark"] .settings-sticky-header {
+    background: var(--bg-card);
+    border-bottom-color: var(--border-primary);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.settings-sticky-nav {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    min-height: 2.75rem;
+}
+
+.settings-nav-container {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-block: 0.25rem;
+}
+
+.settings-nav-container::-webkit-scrollbar {
+    height: 5px;
+}
+
+.settings-nav-container::-webkit-scrollbar-thumb {
+    background: var(--border-primary);
+    border-radius: 5px;
+}
+
+#settings-nav.settings-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+    flex-wrap: wrap;
+}
+
+.settings-nav-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 0.875rem;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: color 0.15s ease, background 0.15s ease;
+    white-space: nowrap;
+}
+
+.settings-nav-link:hover {
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+}
+
+.settings-nav-link.active {
+    color: var(--color-primary-db, var(--primary-color, #008060));
+    font-weight: 600;
+    background: rgba(0, 128, 96, 0.08);
+}
+
+[data-theme="dark"] .settings-nav-link.active,
+.admin-shell[data-theme="dark"] .settings-nav-link.active {
+    background: rgba(0, 128, 96, 0.18);
+}
+
+.settings-sticky-actions {
+    flex-shrink: 0;
+    margin-inline-start: auto;
+}
+
+.settings-sticky-actions .btn-save-inline {
+    margin: 0;
+}
+
+/* Section cards - single page flow */
+.settings-content.settings-content-single {
+    display: block;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+}
+
+.settings-section {
+    scroll-margin-top: 4rem;
+}
+
+.settings-section-card {
+    background: var(--bg-card);
+    border-radius: 8px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border-primary);
+}
+
+[data-theme="dark"] .settings-section-card,
+.admin-shell[data-theme="dark"] .settings-section-card {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
 /* Mobile Navigation Toggle */
 .mobile-nav-toggle {
     display: none;
-    margin-bottom: 1rem;
+    margin-bottom: 0;
 }
 
 .nav-toggle-btn {
     width: 100%;
-    padding: 1rem 1.5rem;
+    padding: 0.75rem 1rem;
     background: var(--bg-card);
     border: 2px solid var(--border-primary);
     border-radius: 6px;
     color: var(--text-primary);
     font-weight: 600;
-    font-size: 1rem;
+    font-size: 0.9375rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
 }
 
 .nav-toggle-btn:hover {
@@ -1390,7 +1462,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .nav-toggle-btn i:first-child {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     color: var(--color-primary-db);
 }
 
@@ -1403,69 +1475,18 @@ document.addEventListener('DOMContentLoaded', function() {
     transform: rotate(180deg);
 }
 
-#settings-nav.settings-nav-unique {
-    display: flex;
-    align-items: stretch;
-    gap: 0.5rem;
-    flex-wrap: wrap;
+/* RTL: Sticky header and nav */
+[dir="rtl"] .settings-sticky-nav {
+    flex-direction: row-reverse;
 }
 
-.settings-nav-item {
-    padding: 0.875rem 1rem;
-    border: none;
-    border-radius: 6px;
-    background: transparent;
-    color: var(--text-secondary);
-    font-weight: 700;
-    font-size: 0.9375rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-align: left;
-    margin: 0;
-    box-sizing: border-box;
-    flex: 0 0 auto;
-    min-width: 150px;
+[dir="rtl"] #settings-nav.settings-nav-links {
+    flex-direction: row-reverse;
 }
 
-.settings-nav-item:hover {
-    background: var(--bg-secondary);
-    color: #14b8a6;
-}
-
-.settings-nav-item.active {
-    background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
-    color: var(--text-inverse);
-    box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
-}
-
-.settings-nav-item i {
-    font-size: 1rem;
-    width: 20px;
-    text-align: center;
-    flex-shrink: 0;
-}
-
-.settings-nav-item small.nav-hint {
-    display: block;
-    font-size: 0.7rem;
-    font-weight: 400;
-    opacity: 0.7;
-    margin-top: 0.2rem;
-}
-
-.config-badge {
-    margin-left: auto;
-    font-size: 0.8rem;
-    font-weight: bold;
-    color: var(--text-tertiary);
-    transition: all 0.3s ease;
-}
-
-.config-badge.configured {
-    color: #10b981;
+[dir="rtl"] .settings-sticky-actions {
+    margin-inline-end: auto;
+    margin-inline-start: 0;
 }
 
 .pane-header .quick-links {
@@ -1509,7 +1530,7 @@ document.addEventListener('DOMContentLoaded', function() {
     75% { transform: translateX(5px); }
 }
 
-/* Settings Content */
+/* Settings Content (fallback when not single-page) */
 .settings-content {
     background: var(--bg-card);
     border-radius: 6px;
@@ -1517,30 +1538,10 @@ document.addEventListener('DOMContentLoaded', function() {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.settings-pane {
-    display: none;
-}
-
-.settings-pane.active {
-    display: block;
-    animation: fadeIn 0.3s ease-in;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
 .pane-header {
     margin-bottom: 2rem;
     padding-bottom: 1.5rem;
-    border-bottom: 2px solid #f1f5f9;
+    border-bottom: 1px solid var(--border-primary);
 }
 
 .pane-header h2 {
@@ -1716,26 +1717,36 @@ document.addEventListener('DOMContentLoaded', function() {
     color: var(--text-primary);
 }
 
-/* Save Button */
+/* Save Button - Polaris primary action */
 .btn-save {
-    padding: 1rem 3rem;
-    border-radius: 6px;
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
     border: none;
-    background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
-    color: var(--text-inverse);
-    font-weight: 700;
-    font-size: 1rem;
-    display: flex;
+    background: var(--color-primary-db, var(--primary-color, #008060));
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.875rem;
+    display: inline-flex;
     align-items: center;
-    gap: 0.75rem;
+    justify-content: center;
+    gap: 0.5rem;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 16px rgba(20, 184, 166, 0.3);
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
 }
 
 .btn-save:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(20, 184, 166, 0.4);
+    background: var(--color-primary-db-hover, #006e52);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.btn-save:active {
+    box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.1);
+}
+
+.btn-save i {
+    font-size: 0.875rem;
+    opacity: 0.95;
 }
 
 .btn-save-inline {
@@ -1761,66 +1772,55 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 @media (max-width: 768px) {
-    .settings-topbar-row {
-        flex-direction: column;
-        align-items: stretch;
+    .settings-sticky-nav {
+        flex-wrap: wrap;
     }
-    
+
     .mobile-nav-toggle {
         display: block;
+        width: 100%;
     }
-    
+
     .settings-nav-container {
         display: none;
+        width: 100%;
         max-height: 70vh;
         overflow-y: auto;
         border-radius: 6px;
+        order: 3;
     }
-    
+
     .settings-nav-container.mobile-open {
         display: block;
     }
-    
-    #settings-nav.settings-nav-unique {
+
+    #settings-nav.settings-nav-links {
         flex-direction: column;
-        gap: 0.5rem;
+        align-items: stretch;
+        gap: 0.25rem;
     }
-    
-    .settings-nav-item {
+
+    .settings-nav-link {
+        padding: 0.75rem 1rem;
         width: 100%;
-        min-width: auto;
-        padding: 1rem;
-        background: var(--bg-secondary);
-        border: 2px solid transparent;
+        white-space: normal;
     }
-    
-    .settings-nav-item:hover {
-        background: var(--bg-tertiary);
-        border-color: var(--color-primary-db);
-        transform: translateX(4px);
+
+    .settings-sticky-actions {
+        width: 100%;
     }
-    
-    .settings-nav-item.active {
-        background: linear-gradient(135deg, var(--color-primary-db) 0%, var(--color-primary-db-hover) 100%);
-        color: var(--text-inverse);
-        border-color: var(--color-primary-db);
-        box-shadow: 0 4px 12px var(--color-primary-db-light);
-    }
-    
-    .settings-nav-item small.nav-hint {
-        display: block;
-        font-size: 0.75rem;
-        opacity: 0.8;
-        margin-top: 0.25rem;
-    }
-    
-    .btn-save-inline {
+
+    .settings-sticky-actions .btn-save-inline {
         width: 100%;
         justify-content: center;
     }
-    
+
     .settings-layout {
         margin-bottom: 1.5rem;
+    }
+
+    .settings-section-card {
+        padding: 1.25rem;
     }
 
     .form-group,
@@ -1829,25 +1829,17 @@ document.addEventListener('DOMContentLoaded', function() {
         flex: 1 1 100%;
         min-width: 100%;
     }
+
+    [dir="rtl"] .settings-sticky-actions {
+        margin-inline-end: 0;
+        margin-inline-start: 0;
+    }
 }
 
 @media (max-width: 480px) {
-    .settings-nav-item {
-        padding: 0.875rem;
+    .settings-nav-link {
+        padding: 0.65rem 0.875rem;
         font-size: 0.9rem;
-    }
-    
-    .settings-nav-item i {
-        font-size: 0.9rem;
-        width: 18px;
-    }
-    
-    .settings-nav-item small.nav-hint {
-        font-size: 0.7rem;
-    }
-    
-    .config-badge {
-        font-size: 0.75rem;
     }
 }
 
