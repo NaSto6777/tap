@@ -229,10 +229,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $v = fn($k) => htmlspecialchars((string)($_POST[$k] ?? ''), ENT_QUOTES, 'UTF-8');
 ?>
 
-<section class="py-6 sm:py-8">
-    <div class="flex items-end justify-between gap-4 mb-6">
+<section class="py-4 md:py-8">
+    <div class="flex items-end justify-between gap-4 mb-4 md:mb-6">
         <div>
-            <h1 class="text-xl sm:text-2xl font-semibold tracking-tight text-brand-900">Checkout</h1>
+            <h1 class="text-lg md:text-2xl font-semibold tracking-tight text-brand-900">Checkout</h1>
             <p class="text-xs text-brand-400 mt-1">Fill your details to confirm the order.</p>
         </div>
         <a href="index.php?page=cart" class="text-[11px] font-medium text-brand-500 hover:text-brand-800 transition">Back to cart</a>
@@ -244,8 +244,25 @@ $v = fn($k) => htmlspecialchars((string)($_POST[$k] ?? ''), ENT_QUOTES, 'UTF-8')
         </div>
     <?php endif; ?>
 
-    <div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-        <form method="POST" class="space-y-4 rounded-2xl border border-brand-100 bg-white/85 p-4 sm:p-5">
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 lg:gap-6">
+        <!-- Summary first on mobile so Total is visible -->
+        <aside class="order-1 lg:order-2 rounded-2xl border border-brand-100 bg-white/85 p-4 h-fit">
+            <h2 class="text-sm font-semibold text-brand-900 mb-3">Summary</h2>
+            <?php
+            $cartCount = 0;
+            foreach ($_SESSION['cart'] as $it) $cartCount += (int)($it['quantity'] ?? 0);
+            ?>
+            <div class="text-xs text-brand-500 space-y-2">
+                <div class="flex justify-between"><span>Items</span><span class="text-brand-900 font-medium"><?php echo $cartCount; ?></span></div>
+                <div class="flex justify-between"><span>Tax rate</span><span class="text-brand-900 font-medium"><?php echo number_format((float)$settings->getSetting('tax_rate', 0), 2); ?>%</span></div>
+                <div class="flex justify-between"><span>Shipping</span><span class="text-brand-900 font-medium"><?php echo $formatPrice((float)$settings->getSetting('shipping_price', 0)); ?></span></div>
+            </div>
+            <p class="text-[11px] text-brand-400 mt-4 leading-relaxed">
+                After you confirm, we'll contact you to validate the order and delivery details.
+            </p>
+        </aside>
+
+        <form method="POST" class="order-2 lg:order-1 space-y-4 rounded-2xl border border-brand-100 bg-white/85 p-4 md:p-5">
             <?php echo CsrfHelper::getTokenField(); ?>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -303,23 +320,5 @@ $v = fn($k) => htmlspecialchars((string)($_POST[$k] ?? ''), ENT_QUOTES, 'UTF-8')
                 Place order
             </button>
         </form>
-
-        <aside class="rounded-2xl border border-brand-100 bg-white/85 p-4 h-fit">
-            <h2 class="text-sm font-semibold text-brand-900 mb-3">Summary</h2>
-            <?php
-            // Show quick summary based on session cart
-            $cartCount = 0;
-            foreach ($_SESSION['cart'] as $it) $cartCount += (int)($it['quantity'] ?? 0);
-            ?>
-            <div class="text-xs text-brand-500 space-y-2">
-                <div class="flex justify-between"><span>Items</span><span class="text-brand-900 font-medium"><?php echo $cartCount; ?></span></div>
-                <div class="flex justify-between"><span>Tax rate</span><span class="text-brand-900 font-medium"><?php echo number_format((float)$settings->getSetting('tax_rate', 0), 2); ?>%</span></div>
-                <div class="flex justify-between"><span>Shipping</span><span class="text-brand-900 font-medium"><?php echo $formatPrice((float)$settings->getSetting('shipping_price', 0)); ?></span></div>
-            </div>
-            <p class="text-[11px] text-brand-400 mt-4 leading-relaxed">
-                After you confirm, we’ll contact you to validate the order and delivery details.
-            </p>
-        </aside>
     </div>
 </section>
-

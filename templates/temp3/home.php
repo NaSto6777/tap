@@ -36,17 +36,17 @@ $homeProducts = array_slice($products, 0, 8);
 ?>
 
 <!-- HERO: minimal, typography-first -->
-<section class="py-10 sm:py-14">
-    <div class="space-y-6 sm:space-y-8">
+<section class="py-6 md:py-10 lg:py-14">
+    <div class="space-y-4 md:space-y-6 lg:space-y-8">
         <p class="text-xs font-semibold tracking-[0.3em] uppercase text-brand-500">
             <?php echo htmlspecialchars($settings->getSetting('hero_eyebrow', 'New this week')); ?>
         </p>
 
-        <h1 class="text-3xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-brand-900 max-w-3xl">
+        <h1 class="text-lg md:text-2xl lg:text-4xl xl:text-5xl font-semibold tracking-tight text-brand-900 max-w-3xl">
             <?php echo htmlspecialchars($settings->getSetting('hero_title', 'Objects for people who care about details.')); ?>
         </h1>
 
-        <p class="text-sm sm:text-base text-brand-500 max-w-xl">
+        <p class="text-sm md:text-base text-brand-500 max-w-xl">
             <?php echo htmlspecialchars($settings->getSetting('hero_subtitle', 'A boutique selection of elevated basics and statement pieces, edited for everyday life.')); ?>
         </p>
 
@@ -65,10 +65,10 @@ $homeProducts = array_slice($products, 0, 8);
 </section>
 
 <!-- PRODUCT GRID: bento-style cards -->
-<section class="pb-10">
+<section class="pb-8 md:pb-10">
     <?php if (!empty($homeProducts)): ?>
-        <div class="flex items-center justify-between mb-4 sm:mb-6">
-            <h2 class="text-sm font-semibold tracking-tight text-brand-900">
+        <div class="flex items-center justify-between mb-3 md:mb-6">
+            <h2 class="text-lg md:text-2xl font-semibold tracking-tight text-brand-900">
                 Featured pieces
             </h2>
             <a href="index.php?page=shop" class="text-[11px] font-medium text-brand-500 hover:text-brand-800 transition">
@@ -76,7 +76,7 @@ $homeProducts = array_slice($products, 0, 8);
             </a>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
             <?php foreach ($homeProducts as $product): ?>
                 <?php
                 $id   = (int)$product['id'];
@@ -93,15 +93,15 @@ $homeProducts = array_slice($products, 0, 8);
                 ?>
                 <article class="group flex flex-col rounded-2xl border border-brand-100 bg-white/80 hover:bg-white shadow-sm hover:shadow-soft transition overflow-hidden">
                     <a href="index.php?page=product_view&id=<?php echo $id; ?>"
-                       class="block aspect-[4/5] overflow-hidden">
+                       class="block aspect-[4/5] overflow-hidden rounded-t-2xl">
                         <img
                             src="<?php echo htmlspecialchars($imageUrl); ?>"
                             alt="<?php echo htmlspecialchars($name); ?>"
-                            class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                            class="h-full w-full object-cover rounded-t-2xl transition-transform duration-300 group-hover:scale-[1.03]"
                             onerror="this.src='<?php echo htmlspecialchars(ImageHelper::getPlaceholder()); ?>';"
                         >
                     </a>
-                    <div class="flex flex-col flex-1 px-3.5 pt-3 pb-3.5">
+                    <div class="flex flex-col flex-1 px-2 py-2 md:px-3.5 md:pt-3 md:pb-3.5">
                         <a href="index.php?page=product_view&id=<?php echo $id; ?>"
                            class="text-[13px] font-medium text-brand-900 line-clamp-2 mb-1.5">
                             <?php echo htmlspecialchars($name); ?>
@@ -162,8 +162,8 @@ $homeProducts = array_slice($products, 0, 8);
 </section>
 
 <!-- Trust / benefits -->
-<section class="pb-10">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+<section class="pb-8 md:pb-10">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
         <?php
         $benefits = [
             ['title' => 'Fast delivery', 'desc' => '24–72h dispatch'],
@@ -181,25 +181,4 @@ $homeProducts = array_slice($products, 0, 8);
     </div>
 </section>
 
-<!-- Floating bottom navigation — mobile-first -->
-<nav class="fixed bottom-0 inset-x-0 z-40 bt-safe-area-bottom border-t border-brand-200 bg-white/95 backdrop-blur-sm sm:hidden">
-    <div class="max-w-2xl mx-auto flex items-stretch justify-between text-[11px] font-medium text-brand-500">
-        <a href="index.php"
-           class="flex-1 flex flex-col items-center justify-center py-2 <?php echo ($page ?? '') === 'home' ? 'text-brand-900' : 'hover:text-brand-900'; ?>">
-            <span class="mb-0.5">Home</span>
-        </a>
-        <a href="index.php?page=shop"
-           class="flex-1 flex flex-col items-center justify-center py-2 <?php echo ($page ?? '') === 'shop' ? 'text-brand-900' : 'hover:text-brand-900'; ?>">
-            <span class="mb-0.5">Categories</span>
-        </a>
-        <a href="index.php?page=cart"
-           class="flex-1 flex flex-col items-center justify-center py-2">
-            <span class="mb-0.5">Cart</span>
-        </a>
-        <a href="index.php?page=account"
-           class="flex-1 flex flex-col items-center justify-center py-2">
-            <span class="mb-0.5">Profile</span>
-        </a>
-    </div>
-</nav>
 

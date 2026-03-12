@@ -54,19 +54,18 @@
 
   window.btShowToast = showToast;
 
-  /* Cart count badge ------------------------------------------------------ */
-  const cartCountEl = doc.getElementById('bt-cart-count');
-
+  /* Cart count badge — update all elements with class .bt-cart-count (header + bottom nav) */
   async function refreshCartCount() {
-    if (!cartCountEl) return;
     try {
       const res = await fetch('index.php?action=get_cart_count', {
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
       });
       if (!res.ok) throw new Error('Network error');
       const data = await res.json();
-      const count = Number(data.count || 0);
-      cartCountEl.textContent = String(count);
+      const count = String(Number(data.count || 0));
+      doc.querySelectorAll('.bt-cart-count').forEach(function (el) {
+        el.textContent = count;
+      });
     } catch (e) {
       // fail silently; count just stays as is
     }

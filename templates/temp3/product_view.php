@@ -74,9 +74,9 @@ $stockQty = (int)($product['stock_quantity'] ?? 0);
 $hasStock = $stockQty > 0;
 ?>
 
-<div class="py-6 sm:py-8">
+<div class="py-4 md:py-6 lg:py-8 pb-24 md:pb-8 w-full max-w-5xl mx-auto">
     <!-- Breadcrumb -->
-    <nav class="text-[11px] text-brand-400 mb-4 flex items-center gap-1">
+    <nav class="text-[11px] text-brand-400 mb-3 md:mb-4 flex items-center gap-1 px-0">
         <a href="index.php" class="hover:text-brand-700">Home</a>
         <span>/</span>
         <a href="index.php?page=shop" class="hover:text-brand-700">Shop</a>
@@ -84,25 +84,25 @@ $hasStock = $stockQty > 0;
         <span class="text-brand-700 truncate"><?php echo htmlspecialchars($product['name']); ?></span>
     </nav>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 items-start">
-        <!-- Gallery -->
-        <div class="space-y-3">
-            <div class="aspect-[4/5] rounded-3xl overflow-hidden bg-brand-100">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-10 items-start justify-items-center md:justify-items-stretch">
+        <!-- Gallery — full width on mobile, centered -->
+        <div class="w-full max-w-full space-y-3">
+            <div class="aspect-[4/5] w-full rounded-xl md:rounded-3xl overflow-hidden bg-brand-100">
                 <img
+                    id="bt-main-img"
                     src="<?php echo htmlspecialchars($main_image); ?>"
                     alt="<?php echo htmlspecialchars($product['name']); ?>"
-                    class="h-full w-full object-cover"
+                    class="h-full w-full object-cover rounded-xl md:rounded-3xl"
                     onerror="this.src='<?php echo htmlspecialchars(ImageHelper::getPlaceholder()); ?>';"
                 >
             </div>
             <?php if (is_array($gallery_images) && count($gallery_images) > 1): ?>
-                <div class="flex gap-2 overflow-x-auto">
+                <div class="flex gap-2 overflow-x-auto justify-center md:justify-start">
                     <?php foreach ($gallery_images as $g): ?>
                         <button
                             type="button"
-                            class="h-16 w-16 rounded-2xl overflow-hidden border border-brand-100 bg-brand-100 shrink-0"
-                            onclick="document.getElementById('bt-main-img').src=this.querySelector('img').src"
-                            style="display:none"
+                            class="h-14 w-14 md:h-16 md:w-16 rounded-2xl overflow-hidden border border-brand-100 bg-brand-100 shrink-0 focus:outline-none focus:ring-2 focus:ring-brand-400"
+                            onclick="var m=document.getElementById('bt-main-img'); if(m) m.src=this.querySelector('img').src;"
                         >
                             <img src="<?php echo htmlspecialchars($g); ?>" alt="" class="h-full w-full object-cover">
                         </button>
@@ -112,8 +112,8 @@ $hasStock = $stockQty > 0;
         </div>
 
         <!-- Details -->
-        <div class="space-y-4">
-            <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-brand-900">
+        <div class="space-y-4 px-0 w-full max-w-full">
+            <h1 class="text-lg md:text-2xl font-semibold tracking-tight text-brand-900">
                 <?php echo htmlspecialchars($product['name']); ?>
             </h1>
 
@@ -199,8 +199,8 @@ $hasStock = $stockQty > 0;
     </div>
 </div>
 
-<!-- Sticky mobile Add to Cart bar -->
-<div class="fixed inset-x-0 bottom-0 z-40 sm:hidden bt-safe-area-bottom border-t border-brand-200 bg-white/95 backdrop-blur-sm">
+<!-- Sticky mobile Add to Cart bar — fixed at bottom on phone (bottom nav hidden on this page so bar is visible) -->
+<div class="fixed inset-x-0 bottom-0 z-50 md:hidden bt-safe-area-bottom border-t border-brand-200 bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
     <form
         method="POST"
         action="index.php?page=cart"
@@ -211,14 +211,14 @@ $hasStock = $stockQty > 0;
         <input type="hidden" name="action" value="add">
         <input type="hidden" name="quantity" value="1">
 
-        <div class="flex-1 text-[11px] text-brand-500">
+        <div class="flex-1 min-w-0 text-[11px] text-brand-500">
             <div class="truncate"><?php echo htmlspecialchars($product['name']); ?></div>
             <div class="font-semibold text-brand-900"><?php echo $formatPrice($displayPrice); ?></div>
         </div>
 
         <button
             type="submit"
-            class="inline-flex flex-[1.2] items-center justify-center rounded-full bg-black text-white px-4 py-2.5 text-xs font-medium shadow-soft hover:bg-brand-900 transition disabled:opacity-40"
+            class="shrink-0 inline-flex flex-[1.2] items-center justify-center rounded-full bg-black text-white px-4 py-2.5 text-xs font-medium shadow-soft hover:bg-brand-900 transition disabled:opacity-40"
             <?php echo $hasStock ? '' : 'disabled'; ?>
         >
             Add to cart

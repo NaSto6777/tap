@@ -75,11 +75,11 @@ $stmt->execute($params);
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-<section class="pt-4 pb-8 space-y-6">
+<section class="pt-4 pb-8 space-y-4 md:space-y-6">
     <!-- Heading / search -->
     <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-            <h1 class="text-xl sm:text-2xl font-semibold tracking-tight text-brand-900">Catalog</h1>
+            <h1 class="text-lg md:text-2xl font-semibold tracking-tight text-brand-900">Catalog</h1>
             <p class="text-xs text-brand-400 mt-1">
                 Showing <?php echo count($products); ?> of <?php echo $total_products; ?> products
             </p>
@@ -138,7 +138,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <!-- Product grid -->
         <div class="flex-1">
             <?php if (!empty($products)): ?>
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-4">
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
                     <?php foreach ($products as $product): ?>
                         <?php
                         $id   = (int)$product['id'];
@@ -153,15 +153,15 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         ?>
                         <article class="group flex flex-col rounded-2xl border border-brand-100 bg-white/80 hover:bg-white shadow-sm hover:shadow-soft transition overflow-hidden">
                             <a href="index.php?page=product_view&id=<?php echo $id; ?>"
-                               class="block aspect-[4/5] overflow-hidden">
+                               class="block aspect-[4/5] overflow-hidden rounded-t-2xl">
                                 <img
                                     src="<?php echo htmlspecialchars($imageUrl); ?>"
                                     alt="<?php echo htmlspecialchars($name); ?>"
-                                    class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                                    class="h-full w-full object-cover rounded-t-2xl transition-transform duration-300 group-hover:scale-[1.03]"
                                     onerror="this.src='<?php echo htmlspecialchars(ImageHelper::getPlaceholder()); ?>';"
                                 >
                             </a>
-                            <div class="flex flex-col flex-1 px-3.5 pt-3 pb-3.5">
+                            <div class="flex flex-col flex-1 px-2 py-2 md:px-3.5 md:pt-3 md:pb-3.5">
                                 <a href="index.php?page=product_view&id=<?php echo $id; ?>"
                                    class="text-[13px] font-medium text-brand-900 line-clamp-2 mb-1.5">
                                     <?php echo htmlspecialchars($name); ?>

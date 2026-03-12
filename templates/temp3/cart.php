@@ -103,10 +103,10 @@ $tax_amount = $subtotal * ($tax_rate / 100.0);
 $grand_total = $subtotal + $tax_amount + $shipping_price;
 ?>
 
-<section class="py-6 sm:py-8">
-    <div class="flex items-end justify-between gap-4 mb-5">
+<section class="py-4 md:py-8">
+    <div class="flex items-end justify-between gap-4 mb-4 md:mb-5">
         <div>
-            <h1 class="text-xl sm:text-2xl font-semibold tracking-tight text-brand-900">Your cart</h1>
+            <h1 class="text-lg md:text-2xl font-semibold tracking-tight text-brand-900">Your cart</h1>
             <p class="text-xs text-brand-400 mt-1">Review items, update quantity, or remove products.</p>
         </div>
         <a href="index.php?page=shop" class="text-[11px] font-medium text-brand-500 hover:text-brand-800 transition">
@@ -115,8 +115,39 @@ $grand_total = $subtotal + $tax_amount + $shipping_price;
     </div>
 
     <?php if (!empty($cart_products)): ?>
-        <div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-            <div class="space-y-3">
+        <div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 lg:gap-6">
+            <!-- Order summary first on mobile so Total is visible without scrolling -->
+            <aside class="order-1 lg:order-2 rounded-2xl border border-brand-100 bg-white/85 p-4 h-fit">
+                <h2 class="text-sm font-semibold text-brand-900 mb-3">Order summary</h2>
+                <div class="space-y-2 text-xs text-brand-500">
+                    <div class="flex items-center justify-between">
+                        <span>Subtotal</span><span class="text-brand-900 font-medium"><?php echo $formatPrice($subtotal); ?></span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span>Tax</span><span class="text-brand-900 font-medium"><?php echo $formatPrice($tax_amount); ?></span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span>Shipping</span><span class="text-brand-900 font-medium"><?php echo $formatPrice($shipping_price); ?></span>
+                    </div>
+                    <div class="border-t border-brand-100 pt-3 mt-3 flex items-center justify-between">
+                        <span class="text-brand-700 font-semibold">Total</span>
+                        <span class="text-brand-900 font-semibold"><?php echo $formatPrice($grand_total); ?></span>
+                    </div>
+                </div>
+
+                <div class="mt-4 space-y-2">
+                    <a href="index.php?page=checkout"
+                       class="inline-flex w-full items-center justify-center rounded-full bg-black text-white px-5 py-2.5 text-xs font-medium shadow-soft hover:bg-brand-900 transition">
+                        Proceed to checkout
+                    </a>
+                    <a href="index.php?page=shop"
+                       class="inline-flex w-full items-center justify-center rounded-full border border-brand-200 px-5 py-2.5 text-xs font-medium text-brand-700 hover:bg-brand-50 transition">
+                        Continue shopping
+                    </a>
+                </div>
+            </aside>
+
+            <div class="order-2 lg:order-1 space-y-3">
                 <?php foreach ($cart_products as $item): ?>
                     <?php
                     $p = $item['product'];
@@ -124,10 +155,10 @@ $grand_total = $subtotal + $tax_amount + $shipping_price;
                     $img = ImageHelper::getProductImage($pid);
                     ?>
                     <div class="rounded-2xl border border-brand-100 bg-white/80 p-3 sm:p-4 flex gap-3">
-                        <a href="index.php?page=product_view&id=<?php echo $pid; ?>" class="h-20 w-20 rounded-2xl overflow-hidden bg-brand-100 shrink-0">
+                        <a href="index.php?page=product_view&id=<?php echo $pid; ?>" class="h-20 w-20 rounded-xl overflow-hidden bg-brand-100 shrink-0">
                             <img src="<?php echo htmlspecialchars($img); ?>"
                                  alt="<?php echo htmlspecialchars($p['name']); ?>"
-                                 class="h-full w-full object-cover"
+                                 class="h-full w-full object-cover rounded-xl"
                                  onerror="this.src='<?php echo htmlspecialchars(ImageHelper::getPlaceholder()); ?>';">
                         </a>
 
@@ -196,36 +227,6 @@ $grand_total = $subtotal + $tax_amount + $shipping_price;
                     </button>
                 </form>
             </div>
-
-            <aside class="rounded-2xl border border-brand-100 bg-white/85 p-4 h-fit">
-                <h2 class="text-sm font-semibold text-brand-900 mb-3">Order summary</h2>
-                <div class="space-y-2 text-xs text-brand-500">
-                    <div class="flex items-center justify-between">
-                        <span>Subtotal</span><span class="text-brand-900 font-medium"><?php echo $formatPrice($subtotal); ?></span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span>Tax</span><span class="text-brand-900 font-medium"><?php echo $formatPrice($tax_amount); ?></span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span>Shipping</span><span class="text-brand-900 font-medium"><?php echo $formatPrice($shipping_price); ?></span>
-                    </div>
-                    <div class="border-t border-brand-100 pt-3 mt-3 flex items-center justify-between">
-                        <span class="text-brand-700 font-semibold">Total</span>
-                        <span class="text-brand-900 font-semibold"><?php echo $formatPrice($grand_total); ?></span>
-                    </div>
-                </div>
-
-                <div class="mt-4 space-y-2">
-                    <a href="index.php?page=checkout"
-                       class="inline-flex w-full items-center justify-center rounded-full bg-black text-white px-5 py-2.5 text-xs font-medium shadow-soft hover:bg-brand-900 transition">
-                        Proceed to checkout
-                    </a>
-                    <a href="index.php?page=shop"
-                       class="inline-flex w-full items-center justify-center rounded-full border border-brand-200 px-5 py-2.5 text-xs font-medium text-brand-700 hover:bg-brand-50 transition">
-                        Continue shopping
-                    </a>
-                </div>
-            </aside>
         </div>
     <?php else: ?>
         <div class="rounded-2xl border border-dashed border-brand-200 bg-white/70 px-5 py-10 text-center">
